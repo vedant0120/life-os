@@ -1,5 +1,13 @@
 // ─── Progress Ring ────────────────────────────────────────────────────────────
-export function Ring({ pct, color, size = 50 }) {
+import type { HabitLog, HabitStats, Reaction, Status } from '../types'
+
+interface RingProps {
+  pct: number
+  color: string
+  size?: number
+}
+
+export function Ring({ pct, color, size = 50 }: RingProps) {
   const r = 18,
     c = 2 * Math.PI * r
   const off = c - (Math.min(pct, 100) / 100) * c
@@ -28,6 +36,17 @@ export function Ring({ pct, color, size = 50 }) {
 // ─── Habit Log Row ────────────────────────────────────────────────────────────
 import { getMeta } from '../data/constants'
 
+interface LogRowProps {
+  habit: string
+  todayStatus: Status
+  stats?: HabitStats
+  logHabit?: (habit: string, status: Exclude<Status, null>) => void
+  showStats?: boolean
+  isAnchor?: boolean
+  onReact?: (type: Reaction['type'], habitName: string | null, message: string) => void
+  isPartner?: boolean
+}
+
 export function LogRow({
   habit,
   todayStatus,
@@ -37,11 +56,11 @@ export function LogRow({
   isAnchor,
   onReact,
   isPartner,
-}) {
+}: LogRowProps) {
   const meta = getMeta(habit)
   const LC = ['#22c55e', '#ef4444', '#f59e0b']
   const LI = ['✓', '✗', '→']
-  const LK = ['success', 'fail', 'skip']
+  const LK: Array<Exclude<Status, null>> = ['success', 'fail', 'skip']
 
   return (
     <div className={'row' + (isAnchor ? ' arow' : '')}>
@@ -158,7 +177,7 @@ export function LogRow({
 }
 
 // ─── Stats helper ─────────────────────────────────────────────────────────────
-export function calcStats(records) {
+export function calcStats(records: HabitLog[]): HabitStats {
   const succ = records
     .filter((r) => r.s === 'success')
     .map((r) => r.d)
@@ -171,13 +190,14 @@ export function calcStats(records) {
       longest = 1
       continue
     }
-    const diff = (new Date(succ[i]) - new Date(succ[i - 1])) / 86400000
+    const diff = (new Date(succ[i]).getTime() - new Date(succ[i - 1]).getTime()) / 86400000
     cur = diff === 1 ? cur + 1 : 1
     if (cur > longest) longest = cur
   }
   const last = succ[succ.length - 1]
   const ago = last
-    ? (new Date(new Date().toISOString().split('T')[0]) - new Date(last)) / 86400000
+    ? (new Date(new Date().toISOString().split('T')[0]).getTime() - new Date(last).getTime()) /
+      86400000
     : 999
   const current = ago <= 1 ? cur : 0
   const total = records.length
@@ -187,8 +207,8 @@ export function calcStats(records) {
   return { rate, current, longest: longest || 0, total }
 }
 
-export function last14() {
-  const d = []
+export function last14(): string[] {
+  const d: string[] = []
   for (let i = 13; i >= 0; i--) {
     const x = new Date()
     x.setDate(x.getDate() - i)
@@ -197,6 +217,6 @@ export function last14() {
   return d
 }
 
-export function todayStr() {
+export function todayStr(): string {
   return new Date().toISOString().split('T')[0]
 }

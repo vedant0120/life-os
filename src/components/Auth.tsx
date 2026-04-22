@@ -1,8 +1,14 @@
 import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 
-export default function Auth() {
-  const [mode, setMode] = useState('login') // login | signup
+interface AuthProps {
+  initialMode?: 'login' | 'signup'
+  onBack?: () => void
+}
+
+export default function Auth({ initialMode = 'login', onBack: _onBack }: AuthProps) {
+  const [mode, setMode] = useState<'login' | 'signup'>(initialMode) // login | signup
   const [email, setEmail] = useState('')
   const [password, setPass] = useState('')
   const [name, setName] = useState('')
@@ -10,7 +16,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
     setLoading(true)

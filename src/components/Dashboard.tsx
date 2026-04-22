@@ -1,7 +1,21 @@
 import { useMemo, useState } from 'react'
 import { Ring, LogRow, calcStats, todayStr } from './shared'
 import { ANCHOR_HABITS, getMeta } from '../data/constants'
-import { supabase } from '../lib/supabase'
+import type { SharedProps, HabitStats } from '../types'
+
+type DashboardProps = Pick<
+  SharedProps,
+  | 'habits'
+  | 'logs'
+  | 'logHabit'
+  | 'dsaProg'
+  | 'startupProg'
+  | 'fitLogs'
+  | 'partner'
+  | 'partnerLogs'
+  | 'partnerHabits'
+> &
+  Partial<SharedProps>
 
 export default function Dashboard({
   habits,
@@ -13,15 +27,13 @@ export default function Dashboard({
   partner,
   partnerLogs,
   partnerHabits,
-  sendReaction,
-  session,
-}) {
+}: DashboardProps) {
   const [aiText, setAiText] = useState('')
   const [aiLoad, setAiLoad] = useState(false)
   const today = todayStr()
 
   const statsMap = useMemo(() => {
-    const m = {}
+    const m: Record<string, HabitStats> = {}
     habits.forEach((h) => {
       m[h] = calcStats(logs.filter((l) => l.h === h))
     })
@@ -29,7 +41,7 @@ export default function Dashboard({
   }, [habits, logs])
 
   const todayLogs = logs.filter((l) => l.d === today)
-  const getTStatus = (h) => todayLogs.find((l) => l.h === h)?.s || null
+  const getTStatus = (h: string) => todayLogs.find((l) => l.h === h)?.s || null
   const doneToday = ANCHOR_HABITS.filter((h) => getTStatus(h) === 'success').length
   const overallScore = habits.length
     ? Math.round(habits.reduce((a, h) => a + (statsMap[h]?.rate || 0), 0) / habits.length)
@@ -45,9 +57,6 @@ export default function Dashboard({
   const partnerDone =
     partnerHabits?.filter((h) => partnerToday.find((l) => l.h === h && l.s === 'success')).length ||
     0
-  const partnerAnchorsDone = ANCHOR_HABITS.filter((h) =>
-    partnerToday.find((l) => l.h === h && l.s === 'success')
-  ).length
 
   async function getAI() {
     setAiLoad(true)

@@ -1,4 +1,4 @@
-import { MEALS, HEALTH_FLAGS } from '../data/constants'
+import { MEALS } from '../data/constants'
 
 export default function Diet() {
   const totalProtein = MEALS.reduce((a, m) => a + m.total.protein, 0)

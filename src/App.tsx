@@ -14,27 +14,188 @@ import Health from './components/Health'
 import Schedule from './components/Schedule'
 import Analytics from './components/Analytics'
 import Accountability from './components/Accountability'
+import type {
+  Session,
+  Profile,
+  Habit,
+  HabitLog,
+  Status,
+  DSAProgress,
+  StartupProgress,
+  FitnessLog,
+  Reaction,
+  OnboardingPayload,
+} from './types'
 
-function todayStr() {
+function todayStr(): string {
   return new Date().toISOString().split('T')[0]
 }
 
+type View =
+  | 'dashboard'
+  | 'today'
+  | 'habits'
+  | 'trackers'
+  | 'finance'
+  | 'diet'
+  | 'health'
+  | 'schedule'
+  | 'accountability'
+  | 'analytics'
+
+type AuthMode = 'login' | 'signup' | null
+
 export default function App() {
-  const [session, setSession] = useState(null)
-  const [profile, setProfile] = useState(null)
-  const [partner, setPartner] = useState(null)
-  const [habits, setHabits] = useState([])
-  const [logs, setLogs] = useState([])
-  const [partnerLogs, setPartnerLogs] = useState([])
-  const [partnerHabits, setPartnerHabits] = useState([])
-  const [dsaProg, setDsaProg] = useState({})
-  const [startupProg, setStartupProg] = useState({})
-  const [fitLogs, setFitLogs] = useState([])
-  const [reactions, setReactions] = useState([])
-  const [view, setView] = useState('dashboard')
-  const [authMode, setAuthMode] = useState(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [partner, setPartner] = useState<Profile | null>(null)
+  const [habits, setHabits] = useState<Habit[]>([])
+  const [logs, setLogs] = useState<HabitLog[]>([])
+  const [partnerLogs, setPartnerLogs] = useState<HabitLog[]>([])
+  const [partnerHabits, setPartnerHabits] = useState<Habit[]>([])
+  const [dsaProg, setDsaProg] = useState<DSAProgress>({})
+  const [startupProg, setStartupProg] = useState<StartupProgress>({})
+  const [fitLogs, setFitLogs] = useState<FitnessLog[]>([])
+  const [reactions, setReactions] = useState<Reaction[]>([])
+  const [view, setView] = useState<View>('dashboard')
+  const [authMode, setAuthMode] = useState<AuthMode>(null)
   const [loading, setLoading] = useState(true)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
+
+  function resetState() {
+    setProfile(null)
+    setPartner(null)
+    setHabits([])
+    setLogs([])
+    setPartnerLogs([])
+    setPartnerHabits([])
+    setDsaProg({})
+    setStartupProg({})
+    setFitLogs([])
+    setReactions([])
+    setNeedsOnboarding(false)
+  }
+
+  const loadPartner = useCallback(async (partnerId: string) => {
+    const { data: p } = await supabase.from('profiles').select('*').eq('id', partnerId).single()
+    if (p) {
+      setPartner(p as Profile)
+      const { data: ph } = await supabase
+        .from('habits')
+        .select('*')
+        .eq('user_id', partnerId)
+        .eq('active', true)
+        .order('priority')
+      if (ph) setPartnerHabits(ph.map((h: { name: string }) => h.name))
+      const { data: pl } = await supabase
+        .from('habit_logs')
+        .select('*')
+        .eq('user_id', partnerId)
+        .order('date', { ascending: false })
+        .limit(200)
+      if (pl)
+        setPartnerLogs(
+          pl.map(
+            (l: { habit_name: string; date: string; status: Status }) =>
+              ({ h: l.habit_name, d: l.date, s: l.status }) as HabitLog
+          )
+        )
+    }
+  }, [])
+
+  const loadLogs = useCallback(async (userId: string) => {
+    const { data } = await supabase
+      .from('habit_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false })
+      .limit(500)
+    if (data)
+      setLogs(
+        data.map(
+          (l: { habit_name: string; date: string; status: Status }) =>
+            ({ h: l.habit_name, d: l.date, s: l.status }) as HabitLog
+        )
+      )
+  }, [])
+
+  const loadDSA = useCallback(async (userId: string) => {
+    const { data } = await supabase.from('dsa_progress').select('*').eq('user_id', userId)
+    if (data) {
+      const p: DSAProgress = {}
+      data.forEach((d: { topic_key: string; completed: boolean }) => {
+        if (d.completed) p[d.topic_key] = true
+      })
+      setDsaProg(p)
+    }
+  }, [])
+
+  const loadStartup = useCallback(async (userId: string) => {
+    const { data } = await supabase.from('startup_progress').select('*').eq('user_id', userId)
+    if (data) {
+      const p: StartupProgress = {}
+      data.forEach((d: { task_key: string; completed: boolean }) => {
+        if (d.completed) p[d.task_key] = true
+      })
+      setStartupProg(p)
+    }
+  }, [])
+
+  const loadFitness = useCallback(async (userId: string) => {
+    const { data } = await supabase
+      .from('fitness_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('date')
+    if (data) setFitLogs(data as FitnessLog[])
+  }, [])
+
+  const loadReactions = useCallback(async (userId: string) => {
+    const { data } = await supabase
+      .from('accountability_reactions')
+      .select('*')
+      .or(`to_user.eq.${userId},from_user.eq.${userId}`)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (data) setReactions(data as Reaction[])
+  }, [])
+
+  const loadAll = useCallback(
+    async (userId: string) => {
+      setLoading(true)
+      try {
+        const [profileResult, habitsResult] = await Promise.all([
+          supabase.from('profiles').select('*').eq('id', userId).single(),
+          supabase
+            .from('habits')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('active', true)
+            .order('priority'),
+        ])
+        if (profileResult.data) {
+          setProfile(profileResult.data as Profile)
+          if (profileResult.data.partner_id) loadPartner(profileResult.data.partner_id)
+        }
+        if (!habitsResult.data || habitsResult.data.length === 0) {
+          setNeedsOnboarding(true)
+          setLoading(false)
+          return
+        }
+        setHabits(habitsResult.data.map((h: { name: string }) => h.name))
+        await Promise.all([
+          loadLogs(userId),
+          loadDSA(userId),
+          loadStartup(userId),
+          loadFitness(userId),
+          loadReactions(userId),
+        ])
+      } finally {
+        setLoading(false)
+      }
+    },
+    [loadPartner, loadLogs, loadDSA, loadStartup, loadFitness, loadReactions]
+  )
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -53,129 +214,10 @@ export default function App() {
       }
     })
     return () => subscription.unsubscribe()
-  }, [])
+  }, [loadAll])
 
-  function resetState() {
-    setProfile(null)
-    setPartner(null)
-    setHabits([])
-    setLogs([])
-    setPartnerLogs([])
-    setPartnerHabits([])
-    setDsaProg({})
-    setStartupProg({})
-    setFitLogs([])
-    setReactions([])
-    setNeedsOnboarding(false)
-  }
-
-  const loadAll = useCallback(async (userId) => {
-    setLoading(true)
-    try {
-      const [profileResult, habitsResult] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', userId).single(),
-        supabase
-          .from('habits')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('active', true)
-          .order('priority'),
-      ])
-      if (profileResult.data) {
-        setProfile(profileResult.data)
-        if (profileResult.data.partner_id) loadPartner(profileResult.data.partner_id)
-      }
-      if (!habitsResult.data || habitsResult.data.length === 0) {
-        setNeedsOnboarding(true)
-        setLoading(false)
-        return
-      }
-      setHabits(habitsResult.data.map((h) => h.name))
-      await Promise.all([
-        loadLogs(userId),
-        loadDSA(userId),
-        loadStartup(userId),
-        loadFitness(userId),
-        loadReactions(userId),
-      ])
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  async function loadPartner(partnerId) {
-    const { data: p } = await supabase.from('profiles').select('*').eq('id', partnerId).single()
-    if (p) {
-      setPartner(p)
-      const { data: ph } = await supabase
-        .from('habits')
-        .select('*')
-        .eq('user_id', partnerId)
-        .eq('active', true)
-        .order('priority')
-      if (ph) setPartnerHabits(ph.map((h) => h.name))
-      const { data: pl } = await supabase
-        .from('habit_logs')
-        .select('*')
-        .eq('user_id', partnerId)
-        .order('date', { ascending: false })
-        .limit(200)
-      if (pl) setPartnerLogs(pl.map((l) => ({ h: l.habit_name, d: l.date, s: l.status })))
-    }
-  }
-
-  async function loadLogs(userId) {
-    const { data } = await supabase
-      .from('habit_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .order('date', { ascending: false })
-      .limit(500)
-    if (data) setLogs(data.map((l) => ({ h: l.habit_name, d: l.date, s: l.status })))
-  }
-
-  async function loadDSA(userId) {
-    const { data } = await supabase.from('dsa_progress').select('*').eq('user_id', userId)
-    if (data) {
-      const p = {}
-      data.forEach((d) => {
-        if (d.completed) p[d.topic_key] = true
-      })
-      setDsaProg(p)
-    }
-  }
-
-  async function loadStartup(userId) {
-    const { data } = await supabase.from('startup_progress').select('*').eq('user_id', userId)
-    if (data) {
-      const p = {}
-      data.forEach((d) => {
-        if (d.completed) p[d.task_key] = true
-      })
-      setStartupProg(p)
-    }
-  }
-
-  async function loadFitness(userId) {
-    const { data } = await supabase
-      .from('fitness_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .order('date')
-    if (data) setFitLogs(data)
-  }
-
-  async function loadReactions(userId) {
-    const { data } = await supabase
-      .from('accountability_reactions')
-      .select('*')
-      .or(`to_user.eq.${userId},from_user.eq.${userId}`)
-      .order('created_at', { ascending: false })
-      .limit(50)
-    if (data) setReactions(data)
-  }
-
-  async function logHabit(habitName, status) {
+  async function logHabit(habitName: string, status: Exclude<Status, null>) {
+    if (!session) return
     const today = todayStr()
     setLogs((prev) => {
       const f = prev.filter((l) => !(l.h === habitName && l.d === today))
@@ -189,7 +231,8 @@ export default function App() {
       )
   }
 
-  async function toggleDSA(key) {
+  async function toggleDSA(key: string) {
+    if (!session) return
     const v = !dsaProg[key]
     setDsaProg((p) => ({ ...p, [key]: v }))
     await supabase
@@ -200,7 +243,8 @@ export default function App() {
       )
   }
 
-  async function toggleStartup(key) {
+  async function toggleStartup(key: string) {
+    if (!session) return
     const v = !startupProg[key]
     setStartupProg((p) => ({ ...p, [key]: v }))
     await supabase
@@ -211,13 +255,15 @@ export default function App() {
       )
   }
 
-  async function addFitnessLog(entry) {
-    const e = { ...entry, user_id: session.user.id, date: todayStr() }
+  async function addFitnessLog(entry: Partial<FitnessLog>) {
+    if (!session) return
+    const e: FitnessLog = { ...entry, user_id: session.user.id, date: todayStr() }
     setFitLogs((prev) => [...prev, e])
     await supabase.from('fitness_logs').insert(e)
   }
 
-  async function addHabit(name, category, color, icon) {
+  async function addHabit(name: string, category: string, color: string, icon: string) {
+    if (!session) return
     if (!name.trim()) return
     await supabase
       .from('habits')
@@ -225,9 +271,9 @@ export default function App() {
     setHabits((prev) => [...prev, name])
   }
 
-  async function sendReaction(type, habitName, message) {
-    if (!partner) return
-    const r = {
+  async function sendReaction(type: Reaction['type'], habitName: string | null, message: string) {
+    if (!partner || !session) return
+    const r: Reaction = {
       from_user: session.user.id,
       to_user: partner.id,
       type,
@@ -239,7 +285,8 @@ export default function App() {
     setReactions((prev) => [r, ...prev])
   }
 
-  async function linkPartner(partnerEmail) {
+  async function linkPartner(partnerEmail: string): Promise<{ error?: string; success?: boolean }> {
+    if (!session) return { error: 'Not signed in.' }
     const { data: p } = await supabase
       .from('profiles')
       .select('id')
@@ -251,7 +298,8 @@ export default function App() {
     return { success: true }
   }
 
-  async function handleOnboardingComplete(onboardingData) {
+  async function handleOnboardingComplete(onboardingData: OnboardingPayload) {
+    if (!session) return
     const userId = session.user.id
     const {
       habitData,
@@ -322,7 +370,7 @@ export default function App() {
         { event: '*', schema: 'public', table: 'habit_logs', filter: `user_id=eq.${partner.id}` },
         (payload) => {
           if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const l = payload.new
+            const l = payload.new as { habit_name: string; date: string; status: Status }
             setPartnerLogs((prev) => {
               const f = prev.filter((x) => !(x.h === l.habit_name && x.d === l.date))
               return [{ h: l.habit_name, d: l.date, s: l.status }, ...f]
@@ -339,11 +387,13 @@ export default function App() {
           filter: `to_user=eq.${session.user.id}`,
         },
         (payload) => {
-          setReactions((prev) => [payload.new, ...prev])
+          setReactions((prev) => [payload.new as Reaction, ...prev])
         }
       )
       .subscribe()
-    return () => supabase.removeChannel(channel)
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [session, partner])
 
   if (loading)
@@ -392,7 +442,7 @@ export default function App() {
     sendReaction,
     linkPartner,
   }
-  const VIEWS = [
+  const VIEWS: View[] = [
     'dashboard',
     'today',
     'habits',
@@ -420,7 +470,7 @@ export default function App() {
         {view === 'today' && <Today {...sharedProps} />}
         {view === 'habits' && <Habits {...sharedProps} />}
         {view === 'trackers' && <Trackers {...sharedProps} />}
-        {view === 'finance' && <Finance {...sharedProps} />}
+        {view === 'finance' && <Finance />}
         {view === 'diet' && <Diet />}
         {view === 'health' && <Health />}
         {view === 'schedule' && <Schedule />}

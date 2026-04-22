@@ -1,12 +1,15 @@
 import { useMemo } from 'react'
 import { calcStats, last14 } from './shared'
 import { ANCHOR_HABITS, getMeta, CAT_COLORS, CATEGORIES } from '../data/constants'
+import type { SharedProps, HabitStats } from '../types'
 
-export default function Analytics({ habits, logs }) {
+type AnalyticsProps = Pick<SharedProps, 'habits' | 'logs'> & Partial<SharedProps>
+
+export default function Analytics({ habits, logs }: AnalyticsProps) {
   const L14 = last14()
 
   const statsMap = useMemo(() => {
-    const m = {}
+    const m: Record<string, HabitStats> = {}
     habits.forEach((h) => {
       m[h] = calcStats(logs.filter((l) => l.h === h))
     })

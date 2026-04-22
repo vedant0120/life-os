@@ -7,6 +7,20 @@ import {
   FITNESS_MILESTONES,
   WORKOUT_DAYS,
 } from '../data/constants'
+import type { SharedProps, DSAProgress, StartupProgress } from '../types'
+
+type TrackersProps = Pick<
+  SharedProps,
+  'dsaProg' | 'startupProg' | 'fitLogs' | 'toggleDSA' | 'toggleStartup' | 'addFitnessLog'
+> &
+  Partial<SharedProps>
+
+type FitFormState = {
+  weight: string
+  calories_eaten: string
+  calories_burned: string
+  note: string
+}
 
 export default function Trackers({
   dsaProg,
@@ -15,17 +29,17 @@ export default function Trackers({
   toggleDSA,
   toggleStartup,
   addFitnessLog,
-}) {
-  const [tab, setTab] = useState('dsa')
+}: TrackersProps) {
+  const [tab, setTab] = useState<'dsa' | 'startup' | 'fitness'>('dsa')
   const [showFit, setShowFit] = useState(false)
-  const [fitEntry, setFitEntry] = useState({
+  const [fitEntry, setFitEntry] = useState<FitFormState>({
     weight: '',
     calories_eaten: '',
     calories_burned: '',
     note: '',
   })
 
-  function monProg(mi, items, prog) {
+  function monProg(mi: number, items: unknown[], prog: DSAProgress | StartupProgress) {
     const done = items.filter((_, i) => prog[`${mi}-${i}`]).length
     return { done, total: items.length, pct: Math.round((done / items.length) * 100) }
   }
@@ -52,11 +66,13 @@ export default function Trackers({
         <div className="pt">Progress on big goals</div>
       </div>
       <div style={{ display: 'flex', gap: 5, marginBottom: 16, flexWrap: 'wrap' }}>
-        {[
-          { id: 'dsa', label: '💻 DSA' },
-          { id: 'startup', label: '🚀 Startup' },
-          { id: 'fitness', label: '💪 Fitness' },
-        ].map((t) => (
+        {(
+          [
+            { id: 'dsa', label: '💻 DSA' },
+            { id: 'startup', label: '🚀 Startup' },
+            { id: 'fitness', label: '💪 Fitness' },
+          ] as const
+        ).map((t) => (
           <div
             key={t.id}
             className={'subtab' + (tab === t.id ? ' on' : '')}
@@ -464,7 +480,7 @@ export default function Trackers({
                       </div>
                     </div>
                   )}
-                  {e.calories_eaten > 0 && (
+                  {(e.calories_eaten ?? 0) > 0 && (
                     <div style={{ textAlign: 'right' }}>
                       <div className="st">KCAL</div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#22c55e' }}>
@@ -472,7 +488,7 @@ export default function Trackers({
                       </div>
                     </div>
                   )}
-                  {e.calories_burned > 0 && (
+                  {(e.calories_burned ?? 0) > 0 && (
                     <div style={{ textAlign: 'right' }}>
                       <div className="st">BURN</div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
@@ -622,12 +638,14 @@ export default function Trackers({
                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>
                   Log Fitness Entry
                 </div>
-                {[
-                  { k: 'weight', p: 'Weight (kg)' },
-                  { k: 'calories_eaten', p: 'Calories eaten' },
-                  { k: 'calories_burned', p: 'Calories burned' },
-                  { k: 'note', p: 'Note (optional)' },
-                ].map((f) => (
+                {(
+                  [
+                    { k: 'weight', p: 'Weight (kg)' },
+                    { k: 'calories_eaten', p: 'Calories eaten' },
+                    { k: 'calories_burned', p: 'Calories burned' },
+                    { k: 'note', p: 'Note (optional)' },
+                  ] as const
+                ).map((f) => (
                   <div key={f.k} style={{ marginBottom: 10 }}>
                     <div className="st" style={{ marginBottom: 4 }}>
                       {f.p}

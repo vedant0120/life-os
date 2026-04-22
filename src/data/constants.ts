@@ -1,5 +1,7 @@
 // ─── HABIT METADATA ──────────────────────────────────────────────────────────
-export const HABIT_META = {
+import type { HabitMeta } from '../types'
+
+export const HABIT_META: Record<string, HabitMeta> = {
   'Interview Coding': {
     cat: 'Career',
     col: '#3b82f6',
@@ -81,7 +83,7 @@ export const ANCHOR_HABITS = [
   'Be Responsive not Reactive',
 ]
 
-export const CAT_COLORS = {
+export const CAT_COLORS: Record<string, string> = {
   Career: '#3b82f6',
   Health: '#22c55e',
   Fitness: '#f97316',
@@ -93,7 +95,7 @@ export const CAT_COLORS = {
 
 export const CATEGORIES = Object.keys(CAT_COLORS)
 
-export function getMeta(h) {
+export function getMeta(h: string): HabitMeta {
   return HABIT_META[h] || { cat: 'Life', col: '#94a3b8', icon: '⭐', pri: 99, note: '' }
 }
 

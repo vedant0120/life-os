@@ -1,6 +1,22 @@
 import { useState } from 'react'
 import { LogRow, calcStats, todayStr } from './shared'
 import { ANCHOR_HABITS, getMeta } from '../data/constants'
+import type { SharedProps, HabitStats } from '../types'
+
+type AccountabilityProps = Pick<
+  SharedProps,
+  | 'partner'
+  | 'partnerHabits'
+  | 'partnerLogs'
+  | 'reactions'
+  | 'sendReaction'
+  | 'linkPartner'
+  | 'profile'
+  | 'session'
+  | 'habits'
+  | 'logs'
+> &
+  Partial<SharedProps>
 
 export default function Accountability({
   partner,
@@ -9,11 +25,10 @@ export default function Accountability({
   reactions,
   sendReaction,
   linkPartner,
-  profile,
   session,
   habits,
   logs,
-}) {
+}: AccountabilityProps) {
   const [email, setEmail] = useState('')
   const [linking, setLinking] = useState(false)
   const [linkError, setLinkError] = useState('')
@@ -25,12 +40,12 @@ export default function Accountability({
   const partnerToday = partnerLogs?.filter((l) => l.d === today) || []
   const myToday = logs?.filter((l) => l.d === today) || []
 
-  const partnerStatsMap = {}
+  const partnerStatsMap: Record<string, HabitStats> = {}
   ;(partnerHabits || []).forEach((h) => {
     partnerStatsMap[h] = calcStats((partnerLogs || []).filter((l) => l.h === h))
   })
 
-  const myStatsMap = {}
+  const myStatsMap: Record<string, HabitStats> = {}
   ;(habits || []).forEach((h) => {
     myStatsMap[h] = calcStats((logs || []).filter((l) => l.h === h))
   })
@@ -63,8 +78,13 @@ export default function Accountability({
   const incomingReactions = reactions?.filter((r) => r.to_user === session?.user?.id) || []
   const outgoingReactions = reactions?.filter((r) => r.from_user === session?.user?.id) || []
 
-  const reactionEmoji = { fire: '🔥', nudge: '👀', cheer: '🎉', message: '💬' }
-  const reactionLabel = {
+  const reactionEmoji: Record<string, string> = {
+    fire: '🔥',
+    nudge: '👀',
+    cheer: '🎉',
+    message: '💬',
+  }
+  const reactionLabel: Record<string, string> = {
     fire: 'Cheered your habit',
     nudge: 'Nudged you on',
     cheer: 'Cheered',
@@ -322,11 +342,13 @@ export default function Accountability({
           </button>
         </div>
         <div style={{ display: 'flex', gap: 7, marginTop: 9 }}>
-          {[
-            { type: 'fire', emoji: '🔥', label: 'Fire!' },
-            { type: 'cheer', emoji: '🎉', label: 'Cheer' },
-            { type: 'nudge', emoji: '👀', label: 'Nudge' },
-          ].map((r) => (
+          {(
+            [
+              { type: 'fire', emoji: '🔥', label: 'Fire!' },
+              { type: 'cheer', emoji: '🎉', label: 'Cheer' },
+              { type: 'nudge', emoji: '👀', label: 'Nudge' },
+            ] as const
+          ).map((r) => (
             <button
               key={r.type}
               className="btn"
@@ -380,7 +402,7 @@ export default function Accountability({
                     <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>{r.message}</div>
                   )}
                   <div style={{ fontSize: 8, color: '#444', marginTop: 2 }}>
-                    {new Date(r.created_at).toLocaleString()}
+                    {r.created_at ? new Date(r.created_at).toLocaleString() : ''}
                   </div>
                 </div>
               </div>

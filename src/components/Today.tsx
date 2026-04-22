@@ -1,13 +1,16 @@
 import { useMemo } from 'react'
 import { LogRow, calcStats, todayStr } from './shared'
 import { ANCHOR_HABITS, CATEGORIES, CAT_COLORS, getMeta } from '../data/constants'
+import type { SharedProps, HabitStats } from '../types'
 
-export default function Today({ habits, logs, logHabit }) {
+type TodayProps = Pick<SharedProps, 'habits' | 'logs' | 'logHabit'> & Partial<SharedProps>
+
+export default function Today({ habits, logs, logHabit }: TodayProps) {
   const today = todayStr()
   const isWeekend = [0, 6].includes(new Date().getDay())
 
   const statsMap = useMemo(() => {
-    const m = {}
+    const m: Record<string, HabitStats> = {}
     habits.forEach((h) => {
       m[h] = calcStats(logs.filter((l) => l.h === h))
     })
@@ -15,7 +18,7 @@ export default function Today({ habits, logs, logHabit }) {
   }, [habits, logs])
 
   const todayLogs = logs.filter((l) => l.d === today)
-  const getTStatus = (h) => todayLogs.find((l) => l.h === h)?.s || null
+  const getTStatus = (h: string) => todayLogs.find((l) => l.h === h)?.s || null
 
   return (
     <div className="fade">

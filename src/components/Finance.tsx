@@ -7,13 +7,24 @@ import {
   YEARLY_FINANCE_TARGETS,
 } from '../data/constants'
 
+interface MonthLog {
+  month: string
+  income: number
+  spent: number
+  invested: number
+  saved: number
+  note?: string
+}
+
+type NewEntry = { month: string; income: string; spent: string; invested: string; note: string }
+
 export default function Finance() {
   const [expenses] = useState(
     BUDGET.filter((b) => b.type === 'expense').reduce((a, b) => a + b.amount, 0)
   )
   const investable = MONTHLY_INCOME - expenses
 
-  const [monthlyLog, setMonthlyLog] = useState([
+  const [monthlyLog, setMonthlyLog] = useState<MonthLog[]>([
     {
       month: 'Apr 2025',
       income: 7500,
@@ -24,7 +35,7 @@ export default function Finance() {
     },
   ])
   const [showAdd, setShowAdd] = useState(false)
-  const [newEntry, setNewEntry] = useState({
+  const [newEntry, setNewEntry] = useState<NewEntry>({
     month: '',
     income: '',
     spent: '',
@@ -41,10 +52,11 @@ export default function Finance() {
     setMonthlyLog((l) => [
       ...l,
       {
-        ...newEntry,
-        income: parseFloat(newEntry.income),
-        spent: parseFloat(newEntry.spent),
-        invested: parseFloat(newEntry.invested),
+        month: newEntry.month,
+        note: newEntry.note,
+        income: parseFloat(newEntry.income) || 0,
+        spent: parseFloat(newEntry.spent) || 0,
+        invested: parseFloat(newEntry.invested) || 0,
         saved,
       },
     ])
@@ -285,13 +297,15 @@ export default function Finance() {
             <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>
               Log Monthly Finances
             </div>
-            {[
-              { k: 'month', p: 'Month (e.g. May 2025)' },
-              { k: 'income', p: 'Income ($)' },
-              { k: 'spent', p: 'Total spent ($)' },
-              { k: 'invested', p: 'Invested ($)' },
-              { k: 'note', p: 'Note (optional)' },
-            ].map((f) => (
+            {(
+              [
+                { k: 'month', p: 'Month (e.g. May 2025)' },
+                { k: 'income', p: 'Income ($)' },
+                { k: 'spent', p: 'Total spent ($)' },
+                { k: 'invested', p: 'Invested ($)' },
+                { k: 'note', p: 'Note (optional)' },
+              ] as const
+            ).map((f) => (
               <div key={f.k} style={{ marginBottom: 10 }}>
                 <div className="st" style={{ marginBottom: 4 }}>
                   {f.p}

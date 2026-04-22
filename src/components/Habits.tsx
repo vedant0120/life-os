@@ -1,25 +1,25 @@
 import { useMemo, useState } from 'react'
-import { calcStats, last14, LogRow, todayStr } from './shared'
+import { calcStats, last14 } from './shared'
 import { getMeta, ANCHOR_HABITS, CATEGORIES } from '../data/constants'
+import type { SharedProps, HabitStats } from '../types'
 
-export default function Habits({ habits, logs, logHabit, addHabit }) {
-  const [selHabit, setSelHabit] = useState(null)
+type HabitsProps = Pick<SharedProps, 'habits' | 'logs' | 'logHabit' | 'addHabit'> &
+  Partial<SharedProps>
+
+export default function Habits({ habits, logs, addHabit }: HabitsProps) {
+  const [selHabit, setSelHabit] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
   const [newCat, setNewCat] = useState('Career')
-  const today = todayStr()
   const L14 = last14()
 
   const statsMap = useMemo(() => {
-    const m = {}
+    const m: Record<string, HabitStats> = {}
     habits.forEach((h) => {
       m[h] = calcStats(logs.filter((l) => l.h === h))
     })
     return m
   }, [habits, logs])
-
-  const todayLogs = logs.filter((l) => l.d === today)
-  const getTStatus = (h) => todayLogs.find((l) => l.h === h)?.s || null
 
   if (selHabit) {
     const habit = selHabit

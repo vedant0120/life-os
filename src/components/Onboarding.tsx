@@ -1,6 +1,9 @@
 import { useState } from 'react'
+import type { OnboardingHabit, OnboardingPayload } from '../types'
 
-const HABIT_TEMPLATES = {
+type HabitTemplateMap = Record<string, OnboardingHabit[]>
+
+const HABIT_TEMPLATES: HabitTemplateMap = {
   'DSA & Career': [
     {
       name: 'Interview Coding',
@@ -182,9 +185,13 @@ const FITNESS_GOALS = [
   { id: 'maintain', label: 'Maintain current shape', icon: '✅', color: '#14b8a6' },
 ]
 
-export default function Onboarding({ onComplete }) {
+export default function Onboarding({
+  onComplete,
+}: {
+  onComplete: (data: OnboardingPayload) => void
+}) {
   const [step, setStep] = useState(0)
-  const [data, setData] = useState({
+  const [data, setData] = useState<OnboardingPayload>({
     name: '',
     focusAreas: [],
     selectedHabits: [],
@@ -195,6 +202,7 @@ export default function Onboarding({ onComplete }) {
     monthlyIncome: '',
     wakeTime: '5:30',
     partnerEmail: '',
+    habitData: [],
   })
 
   const STEPS = [
@@ -215,7 +223,7 @@ export default function Onboarding({ onComplete }) {
     { id: 'selfcare', label: 'Self-Care & Lifestyle', icon: '✨', color: '#14b8a6' },
   ]
 
-  const focusToTemplate = {
+  const focusToTemplate: Record<string, string> = {
     dsa: 'DSA & Career',
     fitness: 'Fitness & Health',
     mindset: 'Mindset & Morning',
@@ -223,7 +231,7 @@ export default function Onboarding({ onComplete }) {
     selfcare: 'Self-Care & Life',
   }
 
-  function toggleFocus(id) {
+  function toggleFocus(id: string) {
     setData((d) => {
       const areas = d.focusAreas.includes(id)
         ? d.focusAreas.filter((x) => x !== id)
@@ -235,7 +243,7 @@ export default function Onboarding({ onComplete }) {
     })
   }
 
-  function toggleHabit(name) {
+  function toggleHabit(name: string) {
     setData((d) => ({
       ...d,
       selectedHabits: d.selectedHabits.includes(name)
@@ -253,10 +261,10 @@ export default function Onboarding({ onComplete }) {
     onComplete({ ...data, habitData })
   }
 
-  const inp = (field, placeholder, type = 'text') => (
+  const inp = (field: keyof OnboardingPayload, placeholder: string, type: string = 'text') => (
     <input
       type={type}
-      value={data[field]}
+      value={(data[field] as string) ?? ''}
       onChange={(e) => setData((d) => ({ ...d, [field]: e.target.value }))}
       placeholder={placeholder}
       style={{
@@ -967,7 +975,7 @@ export default function Onboarding({ onComplete }) {
                 },
                 data.partnerEmail && { l: 'Partner', v: data.partnerEmail },
               ]
-                .filter(Boolean)
+                .filter((r): r is { l: string; v: string } => Boolean(r))
                 .map((r, i) => (
                   <div
                     key={i}

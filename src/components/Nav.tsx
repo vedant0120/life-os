@@ -1,6 +1,23 @@
 import { supabase } from '../lib/supabase'
+import type { Profile, Reaction } from '../types'
 
-export default function Nav({ view, setView, views, profile, partner, reactions }) {
+interface NavProps<V extends string = string> {
+  view: V
+  setView: (v: V) => void
+  views: readonly V[]
+  profile: Profile | null
+  partner: Profile | null
+  reactions: Reaction[]
+}
+
+export default function Nav<V extends string = string>({
+  view,
+  setView,
+  views,
+  profile,
+  partner,
+  reactions,
+}: NavProps<V>) {
   const unread = reactions?.length || 0
 
   return (

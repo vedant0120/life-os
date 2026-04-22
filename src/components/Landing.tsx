@@ -1,4 +1,10 @@
-export default function Landing({ onSignup, onLogin }) {
+export default function Landing({
+  onSignup,
+  onLogin,
+}: {
+  onSignup: () => void
+  onLogin: () => void
+}) {
   return (
     <div
       style={{
