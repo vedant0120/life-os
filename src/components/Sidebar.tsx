@@ -118,10 +118,10 @@ export default function Sidebar() {
                       aria-hidden
                     />
                     <Icon
-                      size={20}
-                      strokeWidth={2}
+                      size={18}
+                      strokeWidth={2.5}
                       aria-hidden
-                      className={isActive ? 'text-brand' : 'text-text/70 group-hover:text-text'}
+                      className={isActive ? 'text-brand' : 'text-text/80 group-hover:text-text'}
                     />
                     <span className="lg:hidden xl:inline">{label}</span>
                   </>
@@ -140,7 +140,7 @@ export default function Sidebar() {
             title="Install app"
             className={`${navCls(false)} lg:justify-center xl:justify-start`}
           >
-            <Download size={20} strokeWidth={2} aria-hidden />
+            <Download size={18} strokeWidth={2.5} aria-hidden />
             <span className="lg:hidden xl:inline">Install app</span>
           </button>
         )}
@@ -150,7 +150,7 @@ export default function Sidebar() {
           title="Sign out"
           className={`${navCls(false)} lg:justify-center xl:justify-start`}
         >
-          <LogOut size={20} strokeWidth={2} aria-hidden />
+          <LogOut size={18} strokeWidth={2.5} aria-hidden />
           <span className="lg:hidden xl:inline">Sign out</span>
         </button>
       </div>

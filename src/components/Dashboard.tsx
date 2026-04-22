@@ -99,32 +99,43 @@ export default function Dashboard() {
     },
   ]
 
+  // Only render trackers that the user has actively populated. Labels stay
+  // generic to the underlying schema (DSA/Startup/Fitness are the legacy
+  // built-ins) — a future P3.4 user-defined-trackers epic will replace this
+  // whole block with whatever the user has pinned.
   const projects = [
-    {
+    dsaTotal > 0 && {
       label: 'DSA Roadmap',
       icon: '💻',
-      pct: dsaTotal ? Math.min(Math.round((dsaDone / dsaTotal) * 100), 100) : 0,
+      pct: Math.min(Math.round((dsaDone / dsaTotal) * 100), 100),
       color: '#3b82f6',
-      sub: dsaTotal ? `${dsaDone} / ${dsaTotal} tasks` : null,
+      sub: `${dsaDone} / ${dsaTotal} tasks`,
       to: '/trackers',
     },
-    {
+    startupTotal > 0 && {
       label: 'Startup',
       icon: '🚀',
-      pct: startupTotal ? Math.min(Math.round((startupDone / startupTotal) * 100), 100) : 0,
+      pct: Math.min(Math.round((startupDone / startupTotal) * 100), 100),
       color: '#f59e0b',
-      sub: startupTotal ? `${startupDone} / ${startupTotal} tasks` : null,
+      sub: `${startupDone} / ${startupTotal} tasks`,
       to: '/trackers',
     },
-    {
+    fitLogs.length > 0 && {
       label: 'Fitness',
       icon: '💪',
       pct: 0,
       color: '#22c55e',
-      sub: fitLogs.length ? `${fitLogs.length} logs` : null,
+      sub: `${fitLogs.length} logs`,
       to: '/health',
     },
-  ]
+  ].filter(Boolean) as Array<{
+    label: string
+    icon: string
+    pct: number
+    color: string
+    sub: string
+    to: string
+  }>
 
   return (
     <div className="fade flex flex-col gap-6">
@@ -148,17 +159,15 @@ export default function Dashboard() {
         {stats.map((c) => (
           <div
             key={c.label}
-            className="rounded-lg bg-surface border border-border p-4 flex flex-col justify-between min-h-[92px]"
+            className="rounded-lg bg-surface border border-border p-5 flex flex-col gap-3 min-h-[112px]"
           >
-            <div className="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted">
+            <div className="text-xs font-semibold tracking-wider uppercase text-text/70">
               {c.label}
             </div>
-            <div className="flex items-end justify-between gap-2 mt-2">
-              <div className={`text-2xl font-semibold tabular-nums leading-none ${c.tone}`}>
-                {c.value}
-              </div>
+            <div className={`text-3xl font-bold tabular-nums leading-none ${c.tone}`}>
+              {c.value}
             </div>
-            <div className="text-[11px] text-muted mt-2 truncate">{c.hint}</div>
+            <div className="text-xs text-muted mt-auto truncate">{c.hint}</div>
           </div>
         ))}
       </section>
@@ -203,35 +212,58 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Project rings */}
-      <section
-        className="grid grid-cols-1 sm:grid-cols-3 gap-3"
-        aria-label="Projects"
-      >
-        {projects.map((p) => (
-          <Link
-            key={p.label}
-            to={p.to}
-            className="group rounded-lg bg-surface border border-border p-4 flex items-center gap-4 hover:border-border-strong transition-colors"
-          >
-            <Ring pct={p.pct} color={p.color} size={56} />
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold text-text truncate">
-                <span className="mr-1.5" aria-hidden>{p.icon}</span>
-                {p.label}
+      {/* Project rings — render only trackers the user has populated;
+          otherwise show a single neutral CTA rather than three hardcoded
+          placeholders. */}
+      {projects.length > 0 ? (
+        <section
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+          aria-label="Your trackers"
+        >
+          {projects.map((p) => (
+            <Link
+              key={p.label}
+              to={p.to}
+              className="group rounded-lg bg-surface border border-border p-4 flex items-center gap-4 hover:border-border-strong transition-colors"
+            >
+              <Ring pct={p.pct} color={p.color} size={56} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-text truncate">
+                  <span className="mr-1.5" aria-hidden>{p.icon}</span>
+                  {p.label}
+                </div>
+                <div className="text-xs text-muted mt-1 truncate">{p.sub}</div>
               </div>
-              <div className="text-[11px] text-muted mt-1 truncate">
-                {p.sub || 'Set up roadmap →'}
-              </div>
+              <ArrowRight
+                size={14}
+                className="text-muted group-hover:text-text transition-colors"
+                aria-hidden
+              />
+            </Link>
+          ))}
+        </section>
+      ) : (
+        <Link
+          to="/trackers"
+          className="group rounded-lg border border-dashed border-border bg-surface/50 p-5 flex items-center gap-4 hover:border-border-strong hover:bg-surface transition-colors"
+          aria-label="Set up a tracker"
+        >
+          <div className="w-12 h-12 shrink-0 rounded-md bg-surface-2 border border-border flex items-center justify-center">
+            <Plus size={20} className="text-muted group-hover:text-text" aria-hidden />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-text">Set up a tracker</div>
+            <div className="text-xs text-muted mt-1">
+              Add roadmaps, checklists, or numeric logs — they'll appear here with progress rings.
             </div>
-            <ArrowRight
-              size={14}
-              className="text-muted group-hover:text-text transition-colors"
-              aria-hidden
-            />
-          </Link>
-        ))}
-      </section>
+          </div>
+          <ArrowRight
+            size={16}
+            className="text-muted group-hover:text-text transition-colors"
+            aria-hidden
+          />
+        </Link>
+      )}
 
       {/* Partner today snapshot */}
       {partner && (
