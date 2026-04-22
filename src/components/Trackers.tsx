@@ -1,14 +1,5 @@
 import { useState } from 'react'
-import { Ring } from './shared'
-import {
-  DSA_MONTHS,
-  DSA_REVISION,
-  STARTUP_MONTHS,
-  FITNESS_MILESTONES,
-  WORKOUT_DAYS,
-} from '../data/constants'
 import { useData } from '../stores/DataContext'
-import type { DSAProgress, StartupProgress } from '../types'
 
 type FitFormState = {
   weight: string
@@ -17,8 +8,20 @@ type FitFormState = {
   note: string
 }
 
+// Small empty-state card used across all three trackers. Neutral copy, same
+// dark theme as the rest of the app — no hardcoded goals, weights, or
+// company targets.
+function EmptyTracker({ label, hint }: { label: string; hint: string }) {
+  return (
+    <div className="card" style={{ padding: 24, textAlign: 'center', color: '#555', fontSize: 12 }}>
+      <div style={{ fontSize: 24, marginBottom: 8 }}>{label}</div>
+      <div style={{ lineHeight: 1.6 }}>{hint}</div>
+    </div>
+  )
+}
+
 export default function Trackers() {
-  const { dsaProg, startupProg, fitLogs, toggleDSA, toggleStartup, addFitnessLog } = useData()
+  const { fitLogs, addFitnessLog } = useData()
   const [tab, setTab] = useState<'dsa' | 'startup' | 'fitness'>('dsa')
   const [showFit, setShowFit] = useState(false)
   const [fitEntry, setFitEntry] = useState<FitFormState>({
@@ -27,11 +30,6 @@ export default function Trackers() {
     calories_burned: '',
     note: '',
   })
-
-  function monProg(mi: number, items: unknown[], prog: DSAProgress | StartupProgress) {
-    const done = items.filter((_, i) => prog[`${mi}-${i}`]).length
-    return { done, total: items.length, pct: Math.round((done / items.length) * 100) }
-  }
 
   function handleAddFit() {
     if (!fitEntry.weight) return
@@ -44,9 +42,6 @@ export default function Trackers() {
     setFitEntry({ weight: '', calories_eaten: '', calories_burned: '', note: '' })
     setShowFit(false)
   }
-
-  const latestWeight = fitLogs?.[fitLogs.length - 1]?.weight || 100
-  const weightLost = 100 - latestWeight
 
   return (
     <div className="fade">
@@ -72,353 +67,22 @@ export default function Trackers() {
         ))}
       </div>
 
-      {/* DSA */}
       {tab === 'dsa' && (
-        <div>
-          <div
-            style={{
-              background: '#09111e',
-              border: '1px solid #1a2a4a',
-              borderRadius: 9,
-              padding: 12,
-              marginBottom: 12,
-            }}
-          >
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3,1fr)',
-                gap: 9,
-                marginBottom: 8,
-              }}
-            >
-              {[
-                { l: 'Target', v: 'Google / Netflix / HRT', c: '#3b82f6' },
-                { l: 'Apply from', v: 'October 2025', c: '#f59e0b' },
-                { l: 'Daily', v: '2.5 hrs · 3-5 problems', c: '#22c55e' },
-              ].map((s, i) => (
-                <div key={i}>
-                  <div className="st">{s.l}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: s.c, marginTop: 3 }}>
-                    {s.v}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div
-              style={{
-                fontSize: 9,
-                color: '#555',
-                padding: '6px 8px',
-                background: '#0a0f1a',
-                borderRadius: 6,
-              }}
-            >
-              Daily: 15min re-solve → 105min new problems → 30min editorial + pattern journal
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', marginBottom: 8 }}>
-              📚 6-Month Roadmap
-            </div>
-            {DSA_MONTHS.map((m, mi) => {
-              const prog = monProg(mi, m.topics, dsaProg)
-              return (
-                <div key={mi} className="card" style={{ padding: 13, marginBottom: 8 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: 8,
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{ fontSize: 11, fontWeight: 700, color: '#e8e6e1', marginBottom: 2 }}
-                      >
-                        {m.label}
-                      </div>
-                      <div style={{ fontSize: 9, color: '#3b82f6' }}>{m.milestone}</div>
-                    </div>
-                    <Ring
-                      pct={prog.pct}
-                      color={prog.pct === 100 ? '#22c55e' : '#3b82f6'}
-                      size={38}
-                    />
-                  </div>
-                  <div className="bar" style={{ marginBottom: 8 }}>
-                    <div
-                      className="fill"
-                      style={{
-                        width: prog.pct + '%',
-                        background: 'linear-gradient(90deg,#3b82f666,#3b82f6)',
-                      }}
-                    ></div>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 5 }}>
-                    {m.topics.map((t, ti) => {
-                      const done = dsaProg[`${mi}-${ti}`]
-                      return (
-                        <button
-                          key={ti}
-                          className="btn"
-                          onClick={() => toggleDSA(`${mi}-${ti}`)}
-                          style={{
-                            background: done ? '#1a2a4a' : '#1a1a2a',
-                            color: done ? '#3b82f6' : '#555',
-                            border: '1px solid ' + (done ? '#3b82f644' : '#2a2a3a'),
-                            padding: '3px 9px',
-                            fontFamily: 'inherit',
-                            fontSize: 10,
-                          }}
-                        >
-                          {done ? '✓ ' : ''}
-                          {t}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <div style={{ fontSize: 8, color: '#444' }}>{m.target}</div>
-                </div>
-              )
-            })}
-          </div>
-
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#a855f7', marginBottom: 8 }}>
-              🧠 Revision Strategy — 5 Layers
-            </div>
-            {DSA_REVISION.map((r, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  gap: 10,
-                  marginBottom: 8,
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  background: '#0f0f18',
-                  border: '1px solid #1a1a2a',
-                }}
-              >
-                <span style={{ fontSize: 18, flexShrink: 0 }}>{r.icon}</span>
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: 3,
-                    }}
-                  >
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#e8e6e1' }}>{r.layer}</div>
-                    <span className="tag" style={{ background: '#a855f722', color: '#a855f7' }}>
-                      {r.timing}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 10, color: '#888', lineHeight: 1.5 }}>{r.desc}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <EmptyTracker
+          label="📚"
+          hint="No DSA roadmap yet. This tab is wired up to hold your custom study roadmap — feature coming soon."
+        />
       )}
 
-      {/* STARTUP */}
       {tab === 'startup' && (
-        <div>
-          <div
-            style={{
-              background: '#0f1209',
-              border: '1px solid #2a3a1a',
-              borderRadius: 9,
-              padding: 12,
-              marginBottom: 12,
-            }}
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 9 }}>
-              {[
-                { l: 'Type', v: 'SaaS Product', c: '#f59e0b' },
-                { l: 'Stage', v: 'Idea Stage', c: '#f97316' },
-                { l: 'Launch', v: 'Sep 2025', c: '#22c55e' },
-              ].map((s, i) => (
-                <div key={i}>
-                  <div className="st">{s.l}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: s.c, marginTop: 3 }}>
-                    {s.v}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          {STARTUP_MONTHS.map((m, mi) => {
-            const prog = monProg(mi, m.tasks, startupProg)
-            return (
-              <div key={mi} className="card" style={{ padding: 13, marginBottom: 8 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    marginBottom: 8,
-                  }}
-                >
-                  <div>
-                    <span
-                      className="tag"
-                      style={{
-                        background: '#f59e0b22',
-                        color: '#f59e0b',
-                        marginBottom: 4,
-                        display: 'inline-block',
-                      }}
-                    >
-                      {m.phase}
-                    </span>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: '#e8e6e1' }}>{m.label}</div>
-                  </div>
-                  <Ring pct={prog.pct} color={prog.pct === 100 ? '#22c55e' : '#f59e0b'} size={38} />
-                </div>
-                <div className="bar" style={{ marginBottom: 9 }}>
-                  <div
-                    className="fill"
-                    style={{
-                      width: prog.pct + '%',
-                      background: 'linear-gradient(90deg,#f59e0b66,#f59e0b)',
-                    }}
-                  ></div>
-                </div>
-                {m.tasks.map((t, ti) => {
-                  const done = startupProg[`${mi}-${ti}`]
-                  return (
-                    <div
-                      key={ti}
-                      onClick={() => toggleStartup(`${mi}-${ti}`)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 7,
-                        marginBottom: 6,
-                        padding: '7px 9px',
-                        borderRadius: 7,
-                        background: '#0f0f18',
-                        border: '1px solid #1a1a2a',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <div
-                        className="check"
-                        style={{
-                          borderColor: done ? '#f59e0b' : '#2a2a3a',
-                          background: done ? '#f59e0b22' : 'transparent',
-                          color: '#f59e0b',
-                        }}
-                      >
-                        {done ? '✓' : ''}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: done ? '#c4c0d8' : '#666',
-                          textDecoration: done ? 'line-through' : 'none',
-                        }}
-                      >
-                        {t}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          })}
-        </div>
+        <EmptyTracker
+          label="🚀"
+          hint="No startup milestones yet. This tab is wired up to hold your phase-by-phase project plan — feature coming soon."
+        />
       )}
 
-      {/* FITNESS */}
       {tab === 'fitness' && (
         <div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4,1fr)',
-              gap: 8,
-              marginBottom: 12,
-            }}
-          >
-            {[
-              { l: 'Current', v: latestWeight + 'kg', c: '#f97316' },
-              { l: 'Lost', v: weightLost + 'kg', c: '#22c55e' },
-              { l: 'To Goal', v: latestWeight - 78 + 'kg', c: '#ef4444' },
-              { l: 'Target', v: '78kg', c: '#818cf8' },
-            ].map((s, i) => (
-              <div key={i} className="card" style={{ padding: 12 }}>
-                <div className="st">{s.l}</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: s.c, marginTop: 5 }}>{s.v}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="card" style={{ padding: 13, marginBottom: 10 }}>
-            <div className="st" style={{ marginBottom: 10 }}>
-              Calorie & Workout Targets
-            </div>
-            {[
-              {
-                l: 'Daily calorie target',
-                v: '1,500 kcal',
-                sub: '~900 kcal food deficit',
-                c: '#22c55e',
-              },
-              {
-                l: 'Workout burn target',
-                v: '400–550 kcal',
-                sub: 'per session · 4-5x/week',
-                c: '#f97316',
-              },
-              {
-                l: 'Protein target',
-                v: '120-130g/day',
-                sub: '1.3g per kg body weight',
-                c: '#3b82f6',
-              },
-              {
-                l: 'Bad health days',
-                v: '1,800+ kcal',
-                sub: 'No gym. Walk only. Heal first.',
-                c: '#ef4444',
-              },
-            ].map((s, i) => (
-              <div
-                key={i}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '8px 0',
-                  borderBottom: '1px solid #111',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 11, color: '#c4c0d8' }}>{s.l}</div>
-                  <div style={{ fontSize: 9, color: '#444', marginTop: 1 }}>{s.sub}</div>
-                </div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: s.c,
-                    flexShrink: 0,
-                    marginLeft: 10,
-                  }}
-                >
-                  {s.v}
-                </div>
-              </div>
-            ))}
-          </div>
-
           <div className="card" style={{ padding: 13, marginBottom: 10 }}>
             <div
               style={{
@@ -428,7 +92,7 @@ export default function Trackers() {
                 marginBottom: 10,
               }}
             >
-              <div className="st">Weight Log</div>
+              <div className="st">Weight & Calorie Log</div>
               <button
                 className="btn"
                 onClick={() => setShowFit(true)}
@@ -442,6 +106,11 @@ export default function Trackers() {
                 + Log
               </button>
             </div>
+            {!fitLogs.length && (
+              <div style={{ color: '#555', fontSize: 11, padding: '12px 0' }}>
+                No entries yet. Log your first weight reading above to start tracking.
+              </div>
+            )}
             {[...fitLogs].reverse().map((e, i) => (
               <div
                 key={i}
@@ -485,137 +154,6 @@ export default function Trackers() {
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="card" style={{ padding: 13, marginBottom: 10 }}>
-            <div className="st" style={{ marginBottom: 11 }}>
-              Weight Milestones
-            </div>
-            {FITNESS_MILESTONES.map((m, i) => {
-              const reached = latestWeight <= m.weight
-              return (
-                <div
-                  key={i}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 9,
-                    marginBottom: 9,
-                    opacity: reached ? 1 : 0.55,
-                  }}
-                >
-                  <div style={{ width: 54, fontSize: 9, color: '#666', flexShrink: 0 }}>
-                    {m.month}
-                  </div>
-                  <div
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 5,
-                      background: reached ? '#22c55e22' : '#1a1a2a',
-                      border: '1px solid ' + (reached ? '#22c55e' : '#2a2a3a'),
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: 9,
-                      color: '#22c55e',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {reached ? '✓' : ''}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}
-                    >
-                      <span
-                        style={{ fontSize: 10, color: '#c4c0d8', fontWeight: reached ? 600 : 400 }}
-                      >
-                        {m.weight}kg
-                      </span>
-                      <span style={{ fontSize: 9, color: '#444' }}>{m.bf}% BF</span>
-                    </div>
-                    <div className="bar">
-                      <div
-                        className="fill"
-                        style={{
-                          width: reached
-                            ? '100%'
-                            : Math.max(
-                                0,
-                                Math.round(((100 - latestWeight) / (100 - m.weight)) * 100)
-                              ) + '%',
-                          background: '#22c55e',
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="card" style={{ padding: 13 }}>
-            <div className="st" style={{ marginBottom: 11 }}>
-              5-Day Workout Split
-            </div>
-            {WORKOUT_DAYS.map((d, i) => (
-              <div
-                key={i}
-                style={{
-                  marginBottom: 9,
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  background: '#0f0f18',
-                  border: '1px solid #1a1a2a',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginBottom: 6,
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#e8e6e1' }}>
-                        {d.day}
-                      </span>
-                      <span
-                        className="tag"
-                        style={{
-                          background: '#f97316' + (d.focus.includes('Rest') ? '11' : '22'),
-                          color: d.focus.includes('Rest') ? '#94a3b8' : '#f97316',
-                        }}
-                      >
-                        {d.focus}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 9, color: '#555', marginTop: 2 }}>{d.muscles}</div>
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{d.burn}</span>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {d.exercises.map((e, j) => (
-                    <div
-                      key={j}
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: 4,
-                        background: '#1a1a2a',
-                        border: '1px solid #2a2a3a',
-                        fontSize: 9,
-                        color: '#888',
-                      }}
-                    >
-                      {e.name} <span style={{ color: '#555' }}>{e.sets}</span>
-                    </div>
-                  ))}
                 </div>
               </div>
             ))}

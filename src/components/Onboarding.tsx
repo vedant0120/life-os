@@ -1,173 +1,18 @@
 import { useState } from 'react'
-import type { OnboardingHabit, OnboardingPayload } from '../types'
+import type { OnboardingPayload } from '../types'
 
-type HabitTemplateMap = Record<string, OnboardingHabit[]>
-
-const HABIT_TEMPLATES: HabitTemplateMap = {
-  'DSA & Career': [
-    {
-      name: 'Interview Coding',
-      category: 'Career',
-      color: '#3b82f6',
-      icon: '💻',
-      priority: 1,
-      note: 'DSA daily — LeetCode problems',
-    },
-    {
-      name: 'Business Case study',
-      category: 'Career',
-      color: '#3b82f6',
-      icon: '💼',
-      priority: 2,
-      note: '1 case/day — business acumen',
-    },
-    {
-      name: 'System Design study',
-      category: 'Career',
-      color: '#3b82f6',
-      icon: '🏗️',
-      priority: 3,
-      note: 'Distributed systems concepts',
-    },
-  ],
-  'Fitness & Health': [
-    {
-      name: 'Workout',
-      category: 'Fitness',
-      color: '#f97316',
-      icon: '💪',
-      priority: 1,
-      note: '4-5x/week gym or cardio',
-    },
-    {
-      name: 'Diet tracking',
-      category: 'Health',
-      color: '#22c55e',
-      icon: '🥗',
-      priority: 2,
-      note: 'Stay within calorie target',
-    },
-    {
-      name: 'No eating junk',
-      category: 'Health',
-      color: '#22c55e',
-      icon: '🚫',
-      priority: 3,
-      note: 'Clean eating for gut health',
-    },
-    {
-      name: 'Food log',
-      category: 'Health',
-      color: '#22c55e',
-      icon: '📋',
-      priority: 4,
-      note: 'Log everything — awareness first',
-    },
-  ],
-  'Mindset & Morning': [
-    {
-      name: 'SAVERS',
-      category: 'Mindset',
-      color: '#a855f7',
-      icon: '🧘',
-      priority: 1,
-      note: 'Silence, Affirmations, Visualize, Exercise, Read, Scribe',
-    },
-    {
-      name: 'Meditation',
-      category: 'Mindset',
-      color: '#a855f7',
-      icon: '🧘',
-      priority: 2,
-      note: '10-20 min daily mindfulness',
-    },
-    {
-      name: 'Journaling',
-      category: 'Mindset',
-      color: '#a855f7',
-      icon: '📓',
-      priority: 3,
-      note: 'Daily reflection and gratitude',
-    },
-    {
-      name: 'Reading',
-      category: 'Mindset',
-      color: '#a855f7',
-      icon: '📚',
-      priority: 4,
-      note: '20-30 min daily',
-    },
-  ],
-  'Startup & Business': [
-    {
-      name: 'Work on startup',
-      category: 'Career',
-      color: '#f59e0b',
-      icon: '🚀',
-      priority: 1,
-      note: 'Daily startup tasks',
-    },
-    {
-      name: 'Customer calls',
-      category: 'Career',
-      color: '#f59e0b',
-      icon: '📞',
-      priority: 2,
-      note: 'Talk to users regularly',
-    },
-    {
-      name: 'Build in public',
-      category: 'Career',
-      color: '#f59e0b',
-      icon: '📢',
-      priority: 3,
-      note: 'Share progress on social',
-    },
-  ],
-  'Self-Care & Life': [
-    {
-      name: 'Skin and Hair-care Routine',
-      category: 'Self-Care',
-      color: '#14b8a6',
-      icon: '✨',
-      priority: 1,
-      note: 'Evening wind-down ritual',
-    },
-    {
-      name: 'Laundry',
-      category: 'Life',
-      color: '#94a3b8',
-      icon: '🧺',
-      priority: 2,
-      note: 'Weekly life admin',
-    },
-    {
-      name: 'Walk or Hike',
-      category: 'Fitness',
-      color: '#f97316',
-      icon: '🥾',
-      priority: 3,
-      note: 'Outdoor movement and fresh air',
-    },
-    {
-      name: 'Photography',
-      category: 'Creative',
-      color: '#ec4899',
-      icon: '📸',
-      priority: 4,
-      note: 'Creative outlet',
-    },
-  ],
-}
+// Minimal first-run flow: name, focus areas, goal details, wake time, optional
+// partner email. Habit seeding has been removed — users add habits manually
+// from the Habits tab so the template ships with zero personal data.
 
 const DSA_TARGETS = [
   {
     id: 'faang',
-    label: 'FAANG / Top Tech',
-    sub: 'Google, Meta, Amazon, Netflix',
+    label: 'Top Tech',
+    sub: 'Big-tech interview prep',
     color: '#3b82f6',
   },
-  { id: 'quant', label: 'Quant / HFT', sub: 'HRT, Jane Street, Citadel', color: '#f59e0b' },
+  { id: 'quant', label: 'Quant / Finance', sub: 'Quant trading roles', color: '#f59e0b' },
   {
     id: 'startup',
     label: 'Top Startups',
@@ -208,7 +53,6 @@ export default function Onboarding({
   const STEPS = [
     { id: 'welcome', title: 'Welcome' },
     { id: 'focus', title: 'Focus Areas' },
-    { id: 'habits', title: 'Your Habits' },
     { id: 'goals', title: 'Goal Details' },
     { id: 'schedule', title: 'Your Schedule' },
     { id: 'partner', title: 'Accountability' },
@@ -216,49 +60,26 @@ export default function Onboarding({
   ]
 
   const focusAreas = [
-    { id: 'dsa', label: 'DSA & Interview Prep', icon: '💻', color: '#3b82f6' },
+    { id: 'dsa', label: 'Interview Prep', icon: '💻', color: '#3b82f6' },
     { id: 'fitness', label: 'Fitness & Health', icon: '💪', color: '#f97316' },
     { id: 'mindset', label: 'Mindset & Morning Routine', icon: '🧘', color: '#a855f7' },
     { id: 'startup', label: 'Startup / Side Project', icon: '🚀', color: '#f59e0b' },
     { id: 'selfcare', label: 'Self-Care & Lifestyle', icon: '✨', color: '#14b8a6' },
   ]
 
-  const focusToTemplate: Record<string, string> = {
-    dsa: 'DSA & Career',
-    fitness: 'Fitness & Health',
-    mindset: 'Mindset & Morning',
-    startup: 'Startup & Business',
-    selfcare: 'Self-Care & Life',
-  }
-
   function toggleFocus(id: string) {
-    setData((d) => {
-      const areas = d.focusAreas.includes(id)
-        ? d.focusAreas.filter((x) => x !== id)
-        : [...d.focusAreas, id]
-      // Auto-select habits from template
-      const allTemplateHabits = areas.flatMap((a) => HABIT_TEMPLATES[focusToTemplate[a]] || [])
-      const habitNames = allTemplateHabits.map((h) => h.name)
-      return { ...d, focusAreas: areas, selectedHabits: habitNames }
-    })
-  }
-
-  function toggleHabit(name: string) {
     setData((d) => ({
       ...d,
-      selectedHabits: d.selectedHabits.includes(name)
-        ? d.selectedHabits.filter((x) => x !== name)
-        : [...d.selectedHabits, name],
+      focusAreas: d.focusAreas.includes(id)
+        ? d.focusAreas.filter((x) => x !== id)
+        : [...d.focusAreas, id],
     }))
   }
 
-  const relevantTemplates = data.focusAreas.map((a) => focusToTemplate[a]).filter(Boolean)
-  const allRelevantHabits = relevantTemplates.flatMap((t) => HABIT_TEMPLATES[t] || [])
-
   function handleComplete() {
-    // Build the final habits list from selected habit names + template data
-    const habitData = allRelevantHabits.filter((h) => data.selectedHabits.includes(h.name))
-    onComplete({ ...data, habitData })
+    // Habits are seeded manually via the Habits tab — onboarding only captures
+    // name / focus / goals / wake time / partner email.
+    onComplete(data)
   }
 
   const inp = (field: keyof OnboardingPayload, placeholder: string, type: string = 'text') => (
@@ -339,8 +160,8 @@ export default function Onboarding({
                 Welcome to Life OS
               </div>
               <div style={{ fontSize: 13, color: '#666', lineHeight: 1.7 }}>
-                Let's build your personal system in 2 minutes. We'll set up your habits, goals, and
-                connect you with an accountability partner.
+                Let's set up your personal system in under a minute. We'll capture your name, focus
+                areas, and goal details — you can add habits from the Habits tab afterwards.
               </div>
             </div>
             <div style={{ marginBottom: 16 }}>
@@ -385,7 +206,7 @@ export default function Onboarding({
                 Hey {data.name}! What are you working on?
               </div>
               <div style={{ fontSize: 12, color: '#666' }}>
-                Select all that apply. We'll build your habit stack from these.
+                Select all that apply. You can change these later.
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
@@ -469,124 +290,14 @@ export default function Onboarding({
                   opacity: data.focusAreas.length > 0 ? 1 : 0.4,
                 }}
               >
-                Next: Review habits →
+                Next: Goal details →
               </button>
             </div>
           </div>
         )}
 
-        {/* Step 2: Habit Selection */}
+        {/* Step 2: Goal Details */}
         {step === 2 && (
-          <div>
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Your habit stack</div>
-              <div style={{ fontSize: 12, color: '#666' }}>
-                We pre-selected based on your goals. Toggle any off you don't need.
-              </div>
-            </div>
-            <div style={{ maxHeight: 360, overflowY: 'auto', marginBottom: 20 }}>
-              {relevantTemplates.map((tmpl) => (
-                <div key={tmpl} style={{ marginBottom: 16 }}>
-                  <div
-                    style={{
-                      fontSize: 9,
-                      color: '#555',
-                      letterSpacing: 2,
-                      textTransform: 'uppercase',
-                      marginBottom: 8,
-                    }}
-                  >
-                    {tmpl}
-                  </div>
-                  {(HABIT_TEMPLATES[tmpl] || []).map((h) => {
-                    const active = data.selectedHabits.includes(h.name)
-                    return (
-                      <div
-                        key={h.name}
-                        onClick={() => toggleHabit(h.name)}
-                        style={{
-                          padding: '10px 13px',
-                          borderRadius: 8,
-                          border: '1px solid ' + (active ? h.color + '44' : '#1a1a2a'),
-                          background: active ? h.color + '0d' : '#0f0f18',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 10,
-                          marginBottom: 6,
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        <span style={{ fontSize: 16 }}>{h.icon}</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 12, color: active ? '#e8e6e1' : '#888' }}>
-                            {h.name}
-                          </div>
-                          <div style={{ fontSize: 9, color: '#555', marginTop: 1 }}>{h.note}</div>
-                        </div>
-                        <div
-                          style={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: 3,
-                            border: '1px solid ' + (active ? h.color : '#2a2a3a'),
-                            background: active ? h.color : 'transparent',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 9,
-                            color: '#fff',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {active ? '✓' : ''}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ))}
-            </div>
-            <div style={{ fontSize: 11, color: '#555', marginBottom: 14 }}>
-              {data.selectedHabits.length} habits selected · You can always add/remove more later
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setStep(1)}
-                style={{
-                  background: '#1a1a2a',
-                  color: '#888',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 1,
-                  fontFamily: 'Georgia, serif',
-                  cursor: 'pointer',
-                }}
-              >
-                Back
-              </button>
-              <button
-                onClick={() => setStep(3)}
-                style={{
-                  background: '#3b82f6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 2,
-                  fontFamily: 'Georgia, serif',
-                  cursor: 'pointer',
-                }}
-              >
-                Next: Set your goals →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Goal Details */}
-        {step === 3 && (
           <div>
             <div style={{ marginBottom: 20 }}>
               <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
@@ -724,11 +435,89 @@ export default function Onboarding({
                   >
                     💰 Monthly Income (optional)
                   </div>
-                  {inp('monthlyIncome', 'e.g. 7500 (helps with finance planning)')}
+                  {inp('monthlyIncome', 'Helps with finance planning')}
                 </div>
               )}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button
+                onClick={() => setStep(1)}
+                style={{
+                  background: '#1a1a2a',
+                  color: '#888',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '10px',
+                  flex: 1,
+                  fontFamily: 'Georgia, serif',
+                  cursor: 'pointer',
+                }}
+              >
+                Back
+              </button>
+              <button
+                onClick={() => setStep(3)}
+                style={{
+                  background: '#3b82f6',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '10px',
+                  flex: 2,
+                  fontFamily: 'Georgia, serif',
+                  cursor: 'pointer',
+                }}
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Schedule */}
+        {step === 3 && (
+          <div>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
+                When do you start your day?
+              </div>
+              <div style={{ fontSize: 12, color: '#666' }}>
+                This shapes your morning routine block.
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+              {[
+                { t: '4:30', l: '4:30 AM — Extreme early bird' },
+                { t: '5:00', l: '5:00 AM — Early bird' },
+                { t: '5:30', l: '5:30 AM — Early riser' },
+                { t: '6:00', l: '6:00 AM — Morning person' },
+                { t: '6:30', l: '6:30 AM — Relaxed morning' },
+                { t: '7:00', l: '7:00 AM — Standard morning' },
+              ].map((w) => (
+                <div
+                  key={w.t}
+                  onClick={() => setData((d) => ({ ...d, wakeTime: w.t }))}
+                  style={{
+                    padding: '12px 16px',
+                    borderRadius: 9,
+                    border: '1px solid ' + (data.wakeTime === w.t ? '#3b82f666' : '#1a1a2a'),
+                    background: data.wakeTime === w.t ? '#0a1428' : '#0f0f18',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: data.wakeTime === w.t ? '#e8e6e1' : '#888' }}>
+                    {w.l}
+                  </span>
+                  {data.wakeTime === w.t && (
+                    <span style={{ color: '#3b82f6', fontSize: 12 }}>✓</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => setStep(2)}
                 style={{
@@ -763,86 +552,8 @@ export default function Onboarding({
           </div>
         )}
 
-        {/* Step 4: Schedule */}
+        {/* Step 4: Partner */}
         {step === 4 && (
-          <div>
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
-                When do you start your day?
-              </div>
-              <div style={{ fontSize: 12, color: '#666' }}>
-                This shapes your morning routine block.
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-              {[
-                { t: '4:30', l: '4:30 AM — Extreme early bird' },
-                { t: '5:00', l: '5:00 AM — Early bird' },
-                { t: '5:30', l: '5:30 AM — Early riser (recommended)' },
-                { t: '6:00', l: '6:00 AM — Morning person' },
-                { t: '6:30', l: '6:30 AM — Relaxed morning' },
-                { t: '7:00', l: '7:00 AM — Standard morning' },
-              ].map((w) => (
-                <div
-                  key={w.t}
-                  onClick={() => setData((d) => ({ ...d, wakeTime: w.t }))}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: 9,
-                    border: '1px solid ' + (data.wakeTime === w.t ? '#3b82f666' : '#1a1a2a'),
-                    background: data.wakeTime === w.t ? '#0a1428' : '#0f0f18',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <span style={{ fontSize: 13, color: data.wakeTime === w.t ? '#e8e6e1' : '#888' }}>
-                    {w.l}
-                  </span>
-                  {data.wakeTime === w.t && (
-                    <span style={{ color: '#3b82f6', fontSize: 12 }}>✓</span>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setStep(3)}
-                style={{
-                  background: '#1a1a2a',
-                  color: '#888',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 1,
-                  fontFamily: 'Georgia, serif',
-                  cursor: 'pointer',
-                }}
-              >
-                Back
-              </button>
-              <button
-                onClick={() => setStep(5)}
-                style={{
-                  background: '#3b82f6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 2,
-                  fontFamily: 'Georgia, serif',
-                  cursor: 'pointer',
-                }}
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 5: Partner */}
-        {step === 5 && (
           <div>
             <div style={{ marginBottom: 24 }}>
               <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
@@ -886,7 +597,7 @@ export default function Onboarding({
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
-                onClick={() => setStep(4)}
+                onClick={() => setStep(3)}
                 style={{
                   background: '#1a1a2a',
                   color: '#888',
@@ -901,7 +612,7 @@ export default function Onboarding({
                 Back
               </button>
               <button
-                onClick={() => setStep(6)}
+                onClick={() => setStep(5)}
                 style={{
                   background: '#3b82f6',
                   color: '#fff',
@@ -919,8 +630,8 @@ export default function Onboarding({
           </div>
         )}
 
-        {/* Step 6: Done */}
-        {step === 6 && (
+        {/* Step 5: Done */}
+        {step === 5 && (
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
             <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 10 }}>
@@ -936,8 +647,8 @@ export default function Onboarding({
                 margin: '0 auto 28px',
               }}
             >
-              Your system is ready. {data.selectedHabits.length} habits loaded. Wake time set to{' '}
-              {data.wakeTime} AM.
+              Your profile is ready. Head over to the Habits tab to add your first habits. Wake time
+              set to {data.wakeTime} AM.
               {data.partnerEmail ? " We'll link your partner as soon as they confirm." : ''}
             </div>
             <div
@@ -963,10 +674,9 @@ export default function Onboarding({
               </div>
               {[
                 { l: 'Focus areas', v: data.focusAreas.length + ' selected' },
-                { l: 'Habits', v: data.selectedHabits.length + ' habits ready' },
                 { l: 'Wake time', v: data.wakeTime + ' AM' },
                 data.dsaTarget && {
-                  l: 'DSA target',
+                  l: 'Interview target',
                   v: DSA_TARGETS.find((t) => t.id === data.dsaTarget)?.label || '',
                 },
                 data.fitnessGoal && {

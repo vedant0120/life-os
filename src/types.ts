@@ -19,8 +19,10 @@ export interface HabitLog {
   s: Status
 }
 
-// Habit metadata (category, color, icon, priority, note) as defined in
-// src/data/constants.ts HABIT_META.
+// Habit metadata (category, color, icon, priority, note). The legacy
+// hardcoded map has been removed; getMeta() in src/data/constants.ts returns
+// a neutral default for any habit. A future epic can back this with a
+// per-user Firestore map.
 export interface HabitMeta {
   cat: string
   col: string

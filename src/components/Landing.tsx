@@ -124,8 +124,8 @@ export default function Landing({
             lineHeight: 1.7,
           }}
         >
-          Track habits, crack DSA interviews, build your startup, stay fit — and do it all with an
-          accountability partner who keeps you honest.
+          Your personal OS. Habits, goals, and accountability — all in one place. Track what
+          matters, build consistency, and stay honest with someone who cares.
         </p>
         <div
           className="hero-fade-3"
@@ -183,8 +183,8 @@ export default function Landing({
           {[
             {
               icon: '💻',
-              title: 'DSA Interview Prep',
-              desc: 'Track your Striver/NeetCode roadmap. 6-month plan to Google, Netflix, or any FAANG target. Built-in revision strategy so nothing slips.',
+              title: 'Interview Prep',
+              desc: 'Track your study roadmap with built-in revision. Works for interview prep, certifications, or any long-horizon study plan.',
               color: '#3b82f6',
             },
             {
@@ -214,7 +214,7 @@ export default function Landing({
             {
               icon: '🧘',
               title: 'Morning Routine & Schedule',
-              desc: 'Build a 5am system that actually works. SAVERS, deep work, workouts — structured into a sustainable daily operating system.',
+              desc: 'Design a morning routine that sticks. Block out deep work, workouts, and wind-down rituals — structured into a sustainable daily system.',
               color: '#14b8a6',
             },
           ].map((f, i) => (

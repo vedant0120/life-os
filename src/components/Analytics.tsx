@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { calcStats, last14 } from './shared'
-import { ANCHOR_HABITS, getMeta, CAT_COLORS, CATEGORIES } from '../data/constants'
+import { getMeta, CAT_COLORS, CATEGORIES } from '../data/constants'
 import { useData } from '../stores/DataContext'
 import type { HabitStats } from '../types'
 
@@ -35,36 +35,39 @@ export default function Analytics() {
         <div className="pt">Performance Overview — {overallScore}% avg success</div>
       </div>
 
-      {/* Anchor habits */}
+      {/* Top habits by streak */}
       <div className="card" style={{ padding: 13, marginBottom: 12 }}>
         <div className="st" style={{ marginBottom: 12 }}>
-          Anchor Habits Performance
+          Top Habits by Streak
         </div>
-        {ANCHOR_HABITS.map((h) => {
-          const s = statsMap[h] || { rate: 0, current: 0 }
-          const meta = getMeta(h)
-          return (
-            <div key={h} style={{ marginBottom: 11 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <div style={{ fontSize: 11, color: '#c4c0d8' }}>
-                  {meta.icon} {h}
+        {[...habits]
+          .sort((a, b) => (statsMap[b]?.current || 0) - (statsMap[a]?.current || 0))
+          .slice(0, 5)
+          .map((h) => {
+            const s = statsMap[h] || { rate: 0, current: 0 }
+            const meta = getMeta(h)
+            return (
+              <div key={h} style={{ marginBottom: 11 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <div style={{ fontSize: 11, color: '#c4c0d8' }}>
+                    {meta.icon} {h}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: s.rate >= 70 ? '#22c55e' : s.rate >= 40 ? '#f59e0b' : '#ef4444',
+                    }}
+                  >
+                    {s.rate}% · 🔥{s.current}d
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: s.rate >= 70 ? '#22c55e' : s.rate >= 40 ? '#f59e0b' : '#ef4444',
-                  }}
-                >
-                  {s.rate}% · 🔥{s.current}d
+                <div className="bar">
+                  <div className="fill" style={{ width: s.rate + '%', background: meta.col }}></div>
                 </div>
               </div>
-              <div className="bar">
-                <div className="fill" style={{ width: s.rate + '%', background: meta.col }}></div>
-              </div>
-            </div>
-          )
-        })}
+            )
+          })}
       </div>
 
       {/* By category */}

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { calcStats, last14 } from './shared'
-import { getMeta, ANCHOR_HABITS, CATEGORIES } from '../data/constants'
+import { getMeta, CATEGORIES } from '../data/constants'
 import { useData } from '../stores/DataContext'
 import type { HabitStats } from '../types'
 
@@ -69,11 +69,6 @@ export default function Habits() {
               <span className="tag" style={{ background: meta.col + '22', color: meta.col }}>
                 {meta.cat}
               </span>
-              {ANCHOR_HABITS.includes(habit) && (
-                <span className="tag" style={{ background: '#3b82f622', color: '#3b82f6' }}>
-                  ⭐ #{meta.pri}
-                </span>
-              )}
             </div>
             {meta.note && (
               <div style={{ fontSize: 9, color: '#555', marginTop: 3 }}>{meta.note}</div>
@@ -199,7 +194,6 @@ export default function Habits() {
         const meta = getMeta(h)
         const stats = statsMap[h]
         const hl = logs.filter((l) => l.h === h)
-        const isA = ANCHOR_HABITS.includes(h)
         return (
           <div
             key={h}
@@ -208,7 +202,7 @@ export default function Habits() {
               padding: 13,
               marginBottom: 7,
               cursor: 'pointer',
-              borderColor: isA ? '#1a2a4a' : '#1e1e2e',
+              borderColor: '#1e1e2e',
             }}
             onClick={() => setSelHabit(h)}
           >
@@ -233,8 +227,7 @@ export default function Habits() {
                   <div
                     style={{
                       fontSize: 12,
-                      fontWeight: isA ? 600 : 400,
-                      color: isA ? '#e8e6e1' : '#c4c0d8',
+                      color: '#c4c0d8',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -242,14 +235,6 @@ export default function Habits() {
                   >
                     {h}
                   </div>
-                  {isA && (
-                    <span
-                      className="tag"
-                      style={{ background: '#3b82f622', color: '#3b82f6', flexShrink: 0 }}
-                    >
-                      #{meta.pri}
-                    </span>
-                  )}
                 </div>
                 <div style={{ display: 'flex', gap: 3 }}>
                   {L14.map((d, i) => {

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { LogRow, calcStats, todayStr } from './shared'
-import { ANCHOR_HABITS, getMeta } from '../data/constants'
+import { getMeta } from '../data/constants'
 import { useAuth } from '../stores/AuthContext'
 import { useData } from '../stores/DataContext'
 import type { HabitStats } from '../types'
@@ -294,7 +294,7 @@ export default function Accountability() {
               todayStatus={status}
               stats={partnerStatsMap[h]}
               showStats={true}
-              isAnchor={ANCHOR_HABITS.includes(h)}
+              isAnchor={false}
               isPartner={true}
               onReact={sendReaction}
             />
@@ -399,72 +399,80 @@ export default function Accountability() {
         </div>
       )}
 
-      {/* Partner streak comparison */}
+      {/* Partner streak comparison — shared habits only */}
       <div className="card" style={{ padding: 13, marginTop: 12 }}>
         <div className="st" style={{ marginBottom: 10 }}>
-          Streak Comparison — Anchor Habits
+          Streak Comparison
         </div>
-        {ANCHOR_HABITS.map((h) => {
-          const myS = myStatsMap[h]?.current || 0
-          const partnerS = partnerStatsMap[h]?.current || 0
-          const leader = myS > partnerS ? 'you' : partnerS > myS ? 'partner' : 'tied'
-          return (
-            <div key={h} style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <div style={{ fontSize: 10, color: '#c4c0d8' }}>
-                  {getMeta(h).icon} {h}
+        {(habits || [])
+          .filter((h) => (partnerHabits || []).includes(h))
+          .map((h) => {
+            const myS = myStatsMap[h]?.current || 0
+            const partnerS = partnerStatsMap[h]?.current || 0
+            const leader = myS > partnerS ? 'you' : partnerS > myS ? 'partner' : 'tied'
+            return (
+              <div key={h} style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <div style={{ fontSize: 10, color: '#c4c0d8' }}>
+                    {getMeta(h).icon} {h}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 9,
+                      color:
+                        leader === 'you' ? '#3b82f6' : leader === 'partner' ? '#22c55e' : '#f59e0b',
+                    }}
+                  >
+                    {leader === 'tied'
+                      ? '🤝 tied'
+                      : leader === 'you'
+                        ? '🏆 you lead'
+                        : '👑 partner leads'}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: 9,
-                    color:
-                      leader === 'you' ? '#3b82f6' : leader === 'partner' ? '#22c55e' : '#f59e0b',
-                  }}
-                >
-                  {leader === 'tied'
-                    ? '🤝 tied'
-                    : leader === 'you'
-                      ? '🏆 you lead'
-                      : '👑 partner leads'}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                  <div>
+                    <div style={{ fontSize: 8, color: '#3b82f6', marginBottom: 2 }}>YOU {myS}d</div>
+                    <div className="bar">
+                      <div
+                        className="fill"
+                        style={{
+                          width:
+                            Math.max(myS, partnerS) > 0
+                              ? (myS / Math.max(myS, partnerS)) * 100 + '%'
+                              : '0%',
+                          background: '#3b82f6',
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 8, color: '#22c55e', marginBottom: 2 }}>
+                      PARTNER {partnerS}d
+                    </div>
+                    <div className="bar">
+                      <div
+                        className="fill"
+                        style={{
+                          width:
+                            Math.max(myS, partnerS) > 0
+                              ? (partnerS / Math.max(myS, partnerS)) * 100 + '%'
+                              : '0%',
+                          background: '#22c55e',
+                        }}
+                      ></div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                <div>
-                  <div style={{ fontSize: 8, color: '#3b82f6', marginBottom: 2 }}>YOU {myS}d</div>
-                  <div className="bar">
-                    <div
-                      className="fill"
-                      style={{
-                        width:
-                          Math.max(myS, partnerS) > 0
-                            ? (myS / Math.max(myS, partnerS)) * 100 + '%'
-                            : '0%',
-                        background: '#3b82f6',
-                      }}
-                    ></div>
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 8, color: '#22c55e', marginBottom: 2 }}>
-                    PARTNER {partnerS}d
-                  </div>
-                  <div className="bar">
-                    <div
-                      className="fill"
-                      style={{
-                        width:
-                          Math.max(myS, partnerS) > 0
-                            ? (partnerS / Math.max(myS, partnerS)) * 100 + '%'
-                            : '0%',
-                        background: '#22c55e',
-                      }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        {(habits || []).filter((h) => (partnerHabits || []).includes(h)).length === 0 && (
+          <div style={{ fontSize: 10, color: '#555' }}>
+            No shared habits yet. Comparisons appear when you and your partner track the same
+            habits.
+          </div>
+        )}
       </div>
     </div>
   )

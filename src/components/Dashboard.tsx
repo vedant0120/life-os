@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Ring, LogRow, calcStats, todayStr } from './shared'
-import { ANCHOR_HABITS, getMeta } from '../data/constants'
+import { getMeta } from '../data/constants'
 import { useData } from '../stores/DataContext'
 import type { HabitStats } from '../types'
 
@@ -16,8 +16,6 @@ export default function Dashboard() {
     partnerLogs,
     partnerHabits,
   } = useData()
-  const [aiText, setAiText] = useState('')
-  const [aiLoad, setAiLoad] = useState(false)
   const today = todayStr()
 
   const statsMap = useMemo(() => {
@@ -30,49 +28,27 @@ export default function Dashboard() {
 
   const todayLogs = logs.filter((l) => l.d === today)
   const getTStatus = (h: string) => todayLogs.find((l) => l.h === h)?.s || null
-  const doneToday = ANCHOR_HABITS.filter((h) => getTStatus(h) === 'success').length
+  const doneToday = habits.filter((h) => getTStatus(h) === 'success').length
   const overallScore = habits.length
     ? Math.round(habits.reduce((a, h) => a + (statsMap[h]?.rate || 0), 0) / habits.length)
     : 0
   const bestStreak = habits.length ? Math.max(...habits.map((h) => statsMap[h]?.longest || 0)) : 0
-  const latestWeight = fitLogs?.[fitLogs.length - 1]?.weight || 100
-  const weightLost = 100 - latestWeight
+  // Weight-lost card: derived from fitness logs. With < 2 entries, show "—"
+  // since we don't have a hardcoded starting weight to compare against.
+  const weightLostLabel =
+    fitLogs.length >= 2 && fitLogs[0].weight != null && fitLogs[fitLogs.length - 1].weight != null
+      ? `${(fitLogs[0].weight as number) - (fitLogs[fitLogs.length - 1].weight as number)}kg`
+      : '—'
   const dsaDone = Object.values(dsaProg).filter(Boolean).length
+  const dsaTotal = Object.keys(dsaProg).length
   const startupDone = Object.values(startupProg).filter(Boolean).length
+  const startupTotal = Object.keys(startupProg).length
 
   // Partner today
   const partnerToday = partnerLogs?.filter((l) => l.d === today) || []
   const partnerDone =
     partnerHabits?.filter((h) => partnerToday.find((l) => l.h === h && l.s === 'success')).length ||
     0
-
-  async function getAI() {
-    setAiLoad(true)
-    setAiText('')
-    const dsaStats = statsMap['Interview Coding'] || { rate: 0, current: 0 }
-    const ctx = `DSA: ${dsaStats.rate}% rate, ${dsaStats.current}d streak. Target: Google/Netflix/HRT Oct 2025.\nWorkout: ${statsMap['Workout']?.rate || 0}% rate. Health: gut motility recovery.\nDiet: ${statsMap['1500 Kcal Diet']?.rate || 0}% rate.\nOverall: ${overallScore}%. Weight: ${latestWeight}kg, goal 78kg.`
-    try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 600,
-          messages: [
-            {
-              role: 'user',
-              content: `Life coach. Context:\n${ctx}\n\n3 sharp insights (focus on DSA for Google/Netflix/HRT) + 1 challenge this week. Under 140 words. Direct and motivating.`,
-            },
-          ],
-        }),
-      })
-      const d = await r.json()
-      setAiText(d.content?.[0]?.text || 'No response.')
-    } catch {
-      setAiText('Connection failed. Try again.')
-    }
-    setAiLoad(false)
-  }
 
   return (
     <div className="fade">
@@ -86,9 +62,6 @@ export default function Dashboard() {
           })}
         </div>
         <div className="pt">Let's get after it.</div>
-        <div style={{ fontSize: 10, color: '#3b82f6', marginTop: 2 }}>
-          🎯 Google/Netflix/HRT · 💪 Lose 22kg · 🚀 SaaS launch · 🫀 Gut health first
-        </div>
       </div>
 
       {/* Score cards */}
@@ -97,9 +70,9 @@ export default function Dashboard() {
       >
         {[
           { l: 'Habit Score', v: overallScore + '%', c: '#818cf8' },
-          { l: 'Done Today', v: `${doneToday}/${ANCHOR_HABITS.length}`, c: '#f97316' },
+          { l: 'Done Today', v: `${doneToday}/${habits.length}`, c: '#f97316' },
           { l: 'Best Streak', v: bestStreak + 'd', c: '#ec4899' },
-          { l: 'Weight Lost', v: weightLost + 'kg', c: '#22c55e' },
+          { l: 'Weight Lost', v: weightLostLabel, c: '#22c55e' },
         ].map((c, i) => (
           <div key={i} className="card" style={{ padding: '13px 11px' }}>
             <div className="st">{c.l}</div>
@@ -112,7 +85,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Progress rings */}
+      {/* Progress rings — divisors are dynamic based on the user's actual
+          tracker data; if they haven't set up a roadmap yet the ring stays
+          at 0% rather than comparing against a hardcoded total. */}
       <div
         style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9, marginBottom: 14 }}
       >
@@ -120,23 +95,23 @@ export default function Dashboard() {
           {
             label: 'DSA Roadmap',
             icon: '💻',
-            pct: Math.min(Math.round((dsaDone / 36) * 100), 100),
+            pct: dsaTotal ? Math.min(Math.round((dsaDone / dsaTotal) * 100), 100) : 0,
             color: '#3b82f6',
-            sub: '→ Google/Netflix/HRT',
+            sub: dsaTotal ? `${dsaDone}/${dsaTotal} tasks` : 'No roadmap yet',
           },
           {
             label: 'Startup',
             icon: '🚀',
-            pct: Math.min(Math.round((startupDone / 24) * 100), 100),
+            pct: startupTotal ? Math.min(Math.round((startupDone / startupTotal) * 100), 100) : 0,
             color: '#f59e0b',
-            sub: 'idea → launch',
+            sub: startupTotal ? `${startupDone}/${startupTotal} tasks` : 'No roadmap yet',
           },
           {
-            label: 'Weight Goal',
+            label: 'Fitness',
             icon: '💪',
-            pct: Math.min(Math.round((weightLost / 22) * 100), 100),
+            pct: 0,
             color: '#22c55e',
-            sub: `${latestWeight}kg → 78kg`,
+            sub: fitLogs.length ? `${fitLogs.length} logs` : 'No logs yet',
           },
         ].map((c, i) => (
           <div
@@ -214,29 +189,13 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Anchor habits */}
-      <div
-        style={{
-          background: '#09111e',
-          border: '1px solid #1a2a4a',
-          borderRadius: 10,
-          padding: 12,
-          marginBottom: 12,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 9,
-            color: '#3b82f6',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            marginBottom: 10,
-            fontWeight: 700,
-          }}
-        >
-          ⭐ Anchor Habits
+      {/* Your habits today — single generic list; no anchor distinction
+          in the template. */}
+      <div className="card" style={{ padding: 12, marginBottom: 12 }}>
+        <div className="st" style={{ marginBottom: 8 }}>
+          Your Habits Today
         </div>
-        {ANCHOR_HABITS.map((h) => (
+        {habits.map((h) => (
           <LogRow
             key={h}
             habit={h}
@@ -244,29 +203,9 @@ export default function Dashboard() {
             stats={statsMap[h]}
             logHabit={logHabit}
             showStats={false}
-            isAnchor={true}
+            isAnchor={false}
           />
         ))}
-      </div>
-
-      {/* Other habits */}
-      <div className="card" style={{ padding: 12, marginBottom: 12 }}>
-        <div className="st" style={{ marginBottom: 8 }}>
-          Other Habits
-        </div>
-        {habits
-          .filter((h) => !ANCHOR_HABITS.includes(h))
-          .map((h) => (
-            <LogRow
-              key={h}
-              habit={h}
-              todayStatus={getTStatus(h)}
-              stats={statsMap[h]}
-              logHabit={logHabit}
-              showStats={false}
-              isAnchor={false}
-            />
-          ))}
         {!habits.length && (
           <div style={{ color: '#444', fontSize: 12, textAlign: 'center', padding: 16 }}>
             No habits yet — go to Habits tab to add some.
@@ -274,7 +213,7 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* AI Coach */}
+      {/* AI Coach — disabled placeholder pending backend proxy (future epic) */}
       <div
         style={{
           background: '#0d0d1a',
@@ -297,52 +236,18 @@ export default function Dashboard() {
         ></div>
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 9,
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: 1.5,
+            color: '#818cf8',
+            textTransform: 'uppercase',
           }}
         >
-          <div
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              letterSpacing: 1.5,
-              color: '#818cf8',
-              textTransform: 'uppercase',
-            }}
-          >
-            ◈ AI Coach
-          </div>
-          <button
-            className="btn"
-            onClick={getAI}
-            style={{
-              background: '#1a1a3a',
-              color: '#818cf8',
-              padding: '5px 11px',
-              border: '1px solid #2a2a5a',
-              fontFamily: 'inherit',
-            }}
-          >
-            {aiLoad ? 'Analyzing...' : 'Get Insight'}
-          </button>
+          ◈ AI Coach — coming soon
         </div>
-        {aiLoad && (
-          <div style={{ color: '#444', fontSize: 11, animation: 'blink 1.5s infinite' }}>
-            Analyzing patterns...
-          </div>
-        )}
-        {aiText && (
-          <div style={{ color: '#c4c0d8', fontSize: 11, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-            {aiText}
-          </div>
-        )}
-        {!aiText && !aiLoad && (
-          <div style={{ color: '#2a2a3a', fontSize: 11 }}>
-            Health-aware coaching on DSA, gut recovery, and life goals.
-          </div>
-        )}
+        <div style={{ color: '#2a2a3a', fontSize: 11, marginTop: 8 }}>
+          Personalized insights once the backend proxy is wired.
+        </div>
       </div>
     </div>
   )

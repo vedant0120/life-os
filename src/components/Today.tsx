@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { LogRow, calcStats, todayStr } from './shared'
-import { ANCHOR_HABITS, CATEGORIES, CAT_COLORS, getMeta } from '../data/constants'
+import { CATEGORIES, CAT_COLORS, getMeta } from '../data/constants'
 import { useData } from '../stores/DataContext'
 import type { HabitStats } from '../types'
 
@@ -33,42 +33,17 @@ export default function Today() {
         </div>
       </div>
 
-      <div
-        style={{
-          background: '#09111e',
-          border: '1px solid #1a2a4a',
-          borderRadius: 10,
-          padding: 12,
-          marginBottom: 14,
-        }}
-      >
+      {!habits.length && (
         <div
-          style={{
-            fontSize: 9,
-            color: '#3b82f6',
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            marginBottom: 9,
-            fontWeight: 700,
-          }}
+          className="card"
+          style={{ padding: 24, textAlign: 'center', color: '#555', fontSize: 12 }}
         >
-          ⭐ Anchor Habits — Do These First
+          No habits yet — add some from the Habits tab to start checking in.
         </div>
-        {ANCHOR_HABITS.map((h) => (
-          <LogRow
-            key={h}
-            habit={h}
-            todayStatus={getTStatus(h)}
-            stats={statsMap[h]}
-            logHabit={logHabit}
-            showStats={true}
-            isAnchor={true}
-          />
-        ))}
-      </div>
+      )}
 
       {CATEGORIES.map((cat) => {
-        const ch = habits.filter((h) => getMeta(h).cat === cat && !ANCHOR_HABITS.includes(h))
+        const ch = habits.filter((h) => getMeta(h).cat === cat)
         if (!ch.length) return null
         const cc = CAT_COLORS[cat] || '#818cf8'
         const done = ch.filter((h) => getTStatus(h) === 'success').length
@@ -105,56 +80,6 @@ export default function Today() {
           </div>
         )
       })}
-
-      {isWeekend && (
-        <div
-          style={{
-            background: '#0a1a0a',
-            border: '1px solid #1a3a1a',
-            borderRadius: 10,
-            padding: 12,
-            marginTop: 4,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 9,
-              color: '#22c55e',
-              letterSpacing: 2,
-              textTransform: 'uppercase',
-              marginBottom: 9,
-              fontWeight: 700,
-            }}
-          >
-            🌤 Weekend Intentions
-          </div>
-          {[
-            { icon: '🥾', t: 'Walk or Hike', n: '60-90 min outdoor — ~400 kcal' },
-            { icon: '🌿', t: 'Vegan Café Lunch', n: 'Nourishing treat — enjoy it' },
-            { icon: '🥦', t: 'Sunday Meal Prep', n: 'Prep 5 days of lunches' },
-            { icon: '📊', t: 'Weekly Review', n: 'Review DSA + habits + plan next week' },
-          ].map((s, i) => (
-            <div
-              key={i}
-              style={{
-                display: 'flex',
-                gap: 9,
-                marginBottom: 8,
-                padding: '7px 9px',
-                borderRadius: 7,
-                background: '#0a1408',
-                border: '1px solid #1a2a18',
-              }}
-            >
-              <span style={{ fontSize: 15 }}>{s.icon}</span>
-              <div>
-                <div style={{ fontSize: 11, color: '#d4d0c8' }}>{s.t}</div>
-                <div style={{ fontSize: 9, color: '#555', marginTop: 1 }}>{s.n}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
