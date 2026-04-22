@@ -17,7 +17,7 @@ export default function AuthedShell() {
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#e8e6e1' }}>
       <Nav />
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '20px 16px' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 20px' }}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/today" element={<Today />} />

@@ -42,7 +42,7 @@ export default function Nav() {
     >
       <div
         style={{
-          maxWidth: 860,
+          maxWidth: 1200,
           margin: '0 auto',
           display: 'flex',
           alignItems: 'center',
