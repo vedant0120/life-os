@@ -1,23 +1,35 @@
+import { NavLink } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Profile, Reaction } from '../types'
 
-interface NavProps<V extends string = string> {
-  view: V
-  setView: (v: V) => void
-  views: readonly V[]
+// Navigation tab configuration — each entry maps a label (used as the visible
+// capitalized tab text) to its route path. `end` forces exact matching for
+// the root route so "/today" doesn't also activate "/".
+interface NavItem {
+  label: string
+  to: string
+  end?: boolean
+}
+const NAV_ITEMS: readonly NavItem[] = [
+  { label: 'dashboard', to: '/', end: true },
+  { label: 'today', to: '/today' },
+  { label: 'habits', to: '/habits' },
+  { label: 'trackers', to: '/trackers' },
+  { label: 'finance', to: '/finance' },
+  { label: 'diet', to: '/diet' },
+  { label: 'health', to: '/health' },
+  { label: 'schedule', to: '/schedule' },
+  { label: 'accountability', to: '/accountability' },
+  { label: 'analytics', to: '/analytics' },
+]
+
+interface NavProps {
   profile: Profile | null
   partner: Profile | null
   reactions: Reaction[]
 }
 
-export default function Nav<V extends string = string>({
-  view,
-  setView,
-  views,
-  profile,
-  partner,
-  reactions,
-}: NavProps<V>) {
+export default function Nav({ profile, partner, reactions }: NavProps) {
   const unread = reactions?.length || 0
 
   return (
@@ -78,15 +90,19 @@ export default function Nav<V extends string = string>({
             padding: '0 8px',
           }}
         >
-          {views.map((v) => (
-            <div
-              key={v}
-              className={'nav' + (view === v ? ' on' : '')}
-              onClick={() => setView(v)}
-              style={{ position: 'relative' }}
+          {NAV_ITEMS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              // NavLink passes { isActive } so we reproduce the prior
+              // `view === v ? 'on' : ''` active-class behavior using the
+              // same `.nav` / `.nav.on` CSS rules.
+              className={({ isActive }) => 'nav' + (isActive ? ' on' : '')}
+              style={{ position: 'relative', textDecoration: 'none' }}
             >
-              {v}
-              {v === 'accountability' && unread > 0 && (
+              {item.label}
+              {item.label === 'accountability' && unread > 0 && (
                 <span
                   style={{
                     position: 'absolute',
@@ -99,7 +115,7 @@ export default function Nav<V extends string = string>({
                   }}
                 ></span>
               )}
-            </div>
+            </NavLink>
           ))}
         </div>
 

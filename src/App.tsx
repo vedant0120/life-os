@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import Landing from './components/Landing'
 import Auth from './components/Auth'
@@ -31,20 +32,6 @@ function todayStr(): string {
   return new Date().toISOString().split('T')[0]
 }
 
-type View =
-  | 'dashboard'
-  | 'today'
-  | 'habits'
-  | 'trackers'
-  | 'finance'
-  | 'diet'
-  | 'health'
-  | 'schedule'
-  | 'accountability'
-  | 'analytics'
-
-type AuthMode = 'login' | 'signup' | null
-
 export default function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -57,10 +44,10 @@ export default function App() {
   const [startupProg, setStartupProg] = useState<StartupProgress>({})
   const [fitLogs, setFitLogs] = useState<FitnessLog[]>([])
   const [reactions, setReactions] = useState<Reaction[]>([])
-  const [view, setView] = useState<View>('dashboard')
-  const [authMode, setAuthMode] = useState<AuthMode>(null)
   const [loading, setLoading] = useState(true)
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
 
   function resetState() {
     setProfile(null)
@@ -359,6 +346,8 @@ export default function App() {
     }
     setNeedsOnboarding(false)
     await loadAll(userId)
+    // After completing onboarding, drop the user on the Dashboard.
+    navigate('/', { replace: true })
   }
 
   useEffect(() => {
@@ -414,14 +403,48 @@ export default function App() {
       </div>
     )
 
+  // ── Logged-out: Landing at "/" + sign-in/up at "/auth" ─────────────────
+  // Landing has its own "Login / Sign Up" CTAs; clicking either sends the
+  // user to /auth (?mode=signup for the signup variant). Any other path
+  // for an unauthenticated user redirects to the landing page.
   if (!session) {
-    if (authMode === 'login') return <Auth initialMode="login" onBack={() => setAuthMode(null)} />
-    if (authMode === 'signup') return <Auth initialMode="signup" onBack={() => setAuthMode(null)} />
-    return <Landing onSignup={() => setAuthMode('signup')} onLogin={() => setAuthMode('login')} />
+    const authMode: 'login' | 'signup' =
+      new URLSearchParams(location.search).get('mode') === 'signup' ? 'signup' : 'login'
+    return (
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Landing
+              onSignup={() => navigate('/auth?mode=signup')}
+              onLogin={() => navigate('/auth?mode=login')}
+            />
+          }
+        />
+        <Route
+          path="/auth"
+          element={<Auth initialMode={authMode} onBack={() => navigate('/')} />}
+        />
+        {/* Deep links while logged out: remember target, bounce to "/" so the
+            landing page shows first. */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    )
   }
 
-  if (needsOnboarding) return <Onboarding onComplete={handleOnboardingComplete} />
+  // ── Logged-in but no habits yet → Onboarding ───────────────────────────
+  // Onboarding is its own route. Any other path while un-onboarded
+  // redirects here so deep links still get gated.
+  if (needsOnboarding) {
+    return (
+      <Routes>
+        <Route path="/onboarding" element={<Onboarding onComplete={handleOnboardingComplete} />} />
+        <Route path="*" element={<Navigate to="/onboarding" replace />} />
+      </Routes>
+    )
+  }
 
+  // ── Fully authenticated + onboarded: Nav + app routes ──────────────────
   const sharedProps = {
     session,
     profile,
@@ -442,40 +465,31 @@ export default function App() {
     sendReaction,
     linkPartner,
   }
-  const VIEWS: View[] = [
-    'dashboard',
-    'today',
-    'habits',
-    'trackers',
-    'finance',
-    'diet',
-    'health',
-    'schedule',
-    'accountability',
-    'analytics',
-  ]
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0f', color: '#e8e6e1' }}>
       <Nav
-        view={view}
-        setView={setView}
-        views={VIEWS}
         profile={profile}
         partner={partner}
         reactions={reactions.filter((r) => !r.read && r.to_user === session?.user?.id)}
       />
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '20px 16px' }}>
-        {view === 'dashboard' && <Dashboard {...sharedProps} />}
-        {view === 'today' && <Today {...sharedProps} />}
-        {view === 'habits' && <Habits {...sharedProps} />}
-        {view === 'trackers' && <Trackers {...sharedProps} />}
-        {view === 'finance' && <Finance />}
-        {view === 'diet' && <Diet />}
-        {view === 'health' && <Health />}
-        {view === 'schedule' && <Schedule />}
-        {view === 'accountability' && <Accountability {...sharedProps} />}
-        {view === 'analytics' && <Analytics {...sharedProps} />}
+        <Routes>
+          <Route path="/" element={<Dashboard {...sharedProps} />} />
+          <Route path="/today" element={<Today {...sharedProps} />} />
+          <Route path="/habits" element={<Habits {...sharedProps} />} />
+          <Route path="/trackers" element={<Trackers {...sharedProps} />} />
+          <Route path="/finance" element={<Finance />} />
+          <Route path="/diet" element={<Diet />} />
+          <Route path="/health" element={<Health />} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/accountability" element={<Accountability {...sharedProps} />} />
+          <Route path="/analytics" element={<Analytics {...sharedProps} />} />
+          {/* Already signed in → /auth and /onboarding bounce back home. */}
+          <Route path="/auth" element={<Navigate to="/" replace />} />
+          <Route path="/onboarding" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </div>
     </div>
   )
