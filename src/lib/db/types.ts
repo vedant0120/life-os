@@ -1,7 +1,6 @@
 // ─── DataClient interface ────────────────────────────────────────────────────
 // Backend-agnostic surface consumed by AuthContext / DataContext.
-// Two implementations: src/lib/db/supabaseClient.ts and ./firebaseClient.ts.
-// Selected at module-load via VITE_BACKEND (see ./index.ts).
+// Implementation: ./firebaseClient.ts (re-exported as `db` via ./index.ts).
 import type {
   DSAProgress,
   FitnessLog,
@@ -13,8 +12,8 @@ import type {
   Status,
 } from '../../types'
 
-// Normalized session shape — does NOT leak Supabase's Session type across the
-// interface. Callers only need userId + email.
+// Normalized session shape — the interface only needs userId + email, so
+// backend-specific auth types don't leak into callers.
 export interface AppSession {
   userId: string
   email: string | null

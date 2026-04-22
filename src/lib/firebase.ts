@@ -1,8 +1,6 @@
 // ─── Firebase lazy initializer ───────────────────────────────────────────────
-// Initialization is gated: we only call initializeApp() when the Firebase
-// client is actually selected (VITE_BACKEND === 'firebase'). Importing this
-// module while VITE_BACKEND is 'supabase' is a no-op — nothing reads the
-// env vars until a helper is invoked.
+// Initialization is lazy: initializeApp() only runs on first helper invocation,
+// so importing this module is cheap and doesn't read env vars at module load.
 import { initializeApp, type FirebaseApp } from 'firebase/app'
 import { getAuth, type Auth } from 'firebase/auth'
 import { getFirestore, type Firestore } from 'firebase/firestore'

@@ -1,11 +1,7 @@
 // ─── Shared domain types for Life OS ─────────────────────────────────────────
-// These shapes mirror the actual runtime data that flows between Supabase
+// These shapes mirror the actual runtime data that flows between Firestore
 // and the React components. They are intentionally narrow — only the fields
-// actually read/written by the current code are typed. Broader schemas live
-// in supabase/schema.sql.
-import type { Session } from '@supabase/supabase-js'
-
-export type { Session }
+// actually read/written by the current code are typed.
 
 // Daily log status for a habit check-in. `null` means "not logged yet today".
 export type Status = 'success' | 'fail' | 'skip' | null
@@ -16,7 +12,7 @@ export type Status = 'success' | 'fail' | 'skip' | null
 export type Habit = string
 
 // A single habit log record, normalized for in-memory use (see App.tsx loaders
-// which map Supabase rows {habit_name, date, status} -> {h, d, s}).
+// which map day-doc entries {habit_name, date, status} -> {h, d, s}).
 export interface HabitLog {
   h: string
   d: string
@@ -33,7 +29,7 @@ export interface HabitMeta {
   note: string
 }
 
-// Profile row from public.profiles (supabase/schema.sql). Only fields the
+// Profile row from the `users/{uid}` Firestore doc. Only fields the
 // app actually reads are required; everything else is optional.
 export interface Profile {
   id: string

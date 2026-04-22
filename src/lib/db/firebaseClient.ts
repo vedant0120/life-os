@@ -1,6 +1,5 @@
 // ─── Firebase DataClient ─────────────────────────────────────────────────────
-// Firestore-backed equivalent of supabaseClient.ts. CODE-COMPLETE but
-// untested against a live Firebase project — Epic 6 validates end-to-end.
+// Firestore-backed DataClient implementation.
 //
 // Firestore data model (oracle-audited):
 //   users/{uid}                              — profile
@@ -101,8 +100,8 @@ export const firebaseClient: DataClient = {
   async signUp(email, password, name) {
     const cred = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password)
     if (name) await fbUpdateProfile(cred.user, { displayName: name })
-    // Mirror Supabase's on_auth_user_created trigger — create the profile doc
-    // ourselves since Firebase has no auth trigger in this scope.
+    // Create the profile doc immediately on signup (Firebase Auth doesn't
+    // fire a server-side trigger in this client-only setup).
     await setDoc(doc(getFirestoreDb(), 'users', cred.user.uid), {
       id: cred.user.uid,
       email,
@@ -281,7 +280,7 @@ export const firebaseClient: DataClient = {
     await updateDoc(doc(getFirestoreDb(), 'accountability_reactions', id), { read: true })
   },
   async linkPartner(userId, partnerEmail) {
-    // Two-sided batch write — equivalent of the Supabase `link_partners` RPC.
+    // Two-sided batch write — sets partner_id on both users atomically.
     const db = getFirestoreDb()
     const snap = await getDocs(
       query(collection(db, 'users'), where('email', '==', partnerEmail), limit(1))
