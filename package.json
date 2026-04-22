@@ -1,6 +1,9 @@
 {
   "name": "life-os",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=20"
+  },
   "private": true,
   "type": "module",
   "scripts": {

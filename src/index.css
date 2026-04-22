@@ -39,25 +39,6 @@ body,
   display: flex;
   flex-direction: column;
 }
-html {
-  font-size: 14px;
-}
-/* Scale whole authed app up on desktop so mobile-first px sizing feels right on large screens */
-@media (min-width: 1024px) {
-  .authed-shell {
-    zoom: 1.2;
-  }
-}
-@media (min-width: 1440px) {
-  .authed-shell {
-    zoom: 1.35;
-  }
-}
-@media (min-width: 1920px) {
-  .authed-shell {
-    zoom: 1.5;
-  }
-}
 body {
   background: #0a0a0f;
   color: #e8e6e1;
