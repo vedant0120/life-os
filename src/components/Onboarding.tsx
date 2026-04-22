@@ -94,7 +94,6 @@ export default function Onboarding({
         borderRadius: 8,
         color: '#e8e6e1',
         padding: '10px 14px',
-        fontFamily: 'Georgia, serif',
         fontSize: 13,
         outline: 'none',
         width: '100%',
@@ -108,7 +107,6 @@ export default function Onboarding({
         minHeight: '100vh',
         background: '#0a0a0f',
         color: '#e8e6e1',
-        fontFamily: 'Georgia, serif',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -187,7 +185,6 @@ export default function Onboarding({
                 borderRadius: 8,
                 padding: '12px',
                 width: '100%',
-                fontFamily: 'Georgia, serif',
                 fontSize: 14,
                 cursor: 'pointer',
                 opacity: data.name.trim() ? 1 : 0.4,
@@ -270,7 +267,6 @@ export default function Onboarding({
                   borderRadius: 8,
                   padding: '10px',
                   flex: 1,
-                  fontFamily: 'Georgia, serif',
                   cursor: 'pointer',
                 }}
               >
@@ -285,7 +281,6 @@ export default function Onboarding({
                   borderRadius: 8,
                   padding: '10px',
                   flex: 2,
-                  fontFamily: 'Georgia, serif',
                   cursor: 'pointer',
                   opacity: data.focusAreas.length > 0 ? 1 : 0.4,
                 }}
@@ -449,7 +444,6 @@ export default function Onboarding({
                   borderRadius: 8,
                   padding: '10px',
                   flex: 1,
-                  fontFamily: 'Georgia, serif',
                   cursor: 'pointer',
                 }}
               >
@@ -464,7 +458,6 @@ export default function Onboarding({
                   borderRadius: 8,
                   padding: '10px',
                   flex: 2,
-                  fontFamily: 'Georgia, serif',
                   cursor: 'pointer',
                 }}
               >
@@ -527,7 +520,6 @@ export default function Onboarding({
                   borderRadius: 8,
                   padding: '10px',
                   flex: 1,
-                  fontFamily: 'Georgia, serif',
                   cursor: 'pointer',
                 }}
               >
@@ -542,7 +534,6 @@ export default function Onboarding({
                   borderRadius: 8,
                   padding: '10px',
                   flex: 2,
-                  fontFamily: 'Georgia, serif',
                   cursor: 'pointer',
                 }}
               >
@@ -605,7 +596,6 @@ export default function Onboarding({
                   borderRadius: 8,
                   padding: '10px',
                   flex: 1,
-                  fontFamily: 'Georgia, serif',
                   cursor: 'pointer',
                 }}
               >
@@ -620,7 +610,6 @@ export default function Onboarding({
                   borderRadius: 8,
                   padding: '10px',
                   flex: 2,
-                  fontFamily: 'Georgia, serif',
                   cursor: 'pointer',
                 }}
               >
@@ -709,7 +698,6 @@ export default function Onboarding({
                 border: 'none',
                 borderRadius: 10,
                 padding: '14px 40px',
-                fontFamily: 'Georgia, serif',
                 fontSize: 15,
                 cursor: 'pointer',
                 width: '100%',
