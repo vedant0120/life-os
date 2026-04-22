@@ -26,6 +26,7 @@ export interface DataClient {
   onAuthStateChange(cb: (session: AppSession | null) => void): Unsubscribe
   getSession(): Promise<AppSession | null>
   signInWithPassword(email: string, password: string): Promise<AppSession>
+  signInWithGoogle(): Promise<AppSession>
   signUp(email: string, password: string, name?: string): Promise<AppSession | null>
   signOut(): Promise<void>
 

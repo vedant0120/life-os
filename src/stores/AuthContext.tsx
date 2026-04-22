@@ -35,6 +35,7 @@ function reducer(state: AuthState, action: AuthAction): AuthState {
 // ─── Context ─────────────────────────────────────────────────────────────────
 interface AuthContextValue extends AuthState {
   signIn: (email: string, password: string) => Promise<void>
+  signInWithGoogle: () => Promise<void>
   signUp: (email: string, password: string, name?: string) => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
@@ -60,6 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     await db.signInWithPassword(email, password)
+  }, [])
+
+  const signInWithGoogle = useCallback(async () => {
+    // Profile fetch happens in the onAuthStateChange listener below.
+    await db.signInWithGoogle()
   }, [])
 
   const signUp = useCallback(async (email: string, password: string, name?: string) => {
@@ -92,7 +98,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile])
 
   return (
-    <AuthContext.Provider value={{ ...state, signIn, signUp, signOut, refreshProfile, setProfile }}>
+    <AuthContext.Provider
+      value={{ ...state, signIn, signInWithGoogle, signUp, signOut, refreshProfile, setProfile }}
+    >
       {children}
     </AuthContext.Provider>
   )

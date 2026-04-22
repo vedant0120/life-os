@@ -11,8 +11,10 @@
 //   accountability_reactions/{id}            — top-level
 import {
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut as fbSignOut,
   updateProfile as fbUpdateProfile,
   type User,
@@ -96,6 +98,26 @@ export const firebaseClient: DataClient = {
   async signInWithPassword(email, password) {
     const cred = await signInWithEmailAndPassword(getFirebaseAuth(), email, password)
     return { userId: cred.user.uid, email: cred.user.email }
+  },
+  async signInWithGoogle() {
+    const cred = await signInWithPopup(getFirebaseAuth(), new GoogleAuthProvider())
+    const user = cred.user
+    // Create the profile doc on first Google sign-in, mirroring the signUp
+    // shape. Use getDoc+setDoc (no merge) so repeat sign-ins don't clobber
+    // fields the user has since edited (e.g. partner_status).
+    const profileRef = doc(getFirestoreDb(), 'users', user.uid)
+    const snap = await getDoc(profileRef)
+    if (!snap.exists()) {
+      await setDoc(profileRef, {
+        id: user.uid,
+        email: user.email ?? '',
+        name: user.displayName ?? user.email?.split('@')[0] ?? '',
+        partner_status: 'none',
+        avatar_color: '#818cf8',
+        created_at: serverTimestamp(),
+      })
+    }
+    return { userId: user.uid, email: user.email }
   },
   async signUp(email, password, name) {
     const cred = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password)
