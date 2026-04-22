@@ -7,13 +7,8 @@ import {
   FITNESS_MILESTONES,
   WORKOUT_DAYS,
 } from '../data/constants'
-import type { SharedProps, DSAProgress, StartupProgress } from '../types'
-
-type TrackersProps = Pick<
-  SharedProps,
-  'dsaProg' | 'startupProg' | 'fitLogs' | 'toggleDSA' | 'toggleStartup' | 'addFitnessLog'
-> &
-  Partial<SharedProps>
+import { useData } from '../stores/DataContext'
+import type { DSAProgress, StartupProgress } from '../types'
 
 type FitFormState = {
   weight: string
@@ -22,14 +17,8 @@ type FitFormState = {
   note: string
 }
 
-export default function Trackers({
-  dsaProg,
-  startupProg,
-  fitLogs,
-  toggleDSA,
-  toggleStartup,
-  addFitnessLog,
-}: TrackersProps) {
+export default function Trackers() {
+  const { dsaProg, startupProg, fitLogs, toggleDSA, toggleStartup, addFitnessLog } = useData()
   const [tab, setTab] = useState<'dsa' | 'startup' | 'fitness'>('dsa')
   const [showFit, setShowFit] = useState(false)
   const [fitEntry, setFitEntry] = useState<FitFormState>({

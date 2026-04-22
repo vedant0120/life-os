@@ -1,33 +1,21 @@
 import { useMemo, useState } from 'react'
 import { Ring, LogRow, calcStats, todayStr } from './shared'
 import { ANCHOR_HABITS, getMeta } from '../data/constants'
-import type { SharedProps, HabitStats } from '../types'
+import { useData } from '../stores/DataContext'
+import type { HabitStats } from '../types'
 
-type DashboardProps = Pick<
-  SharedProps,
-  | 'habits'
-  | 'logs'
-  | 'logHabit'
-  | 'dsaProg'
-  | 'startupProg'
-  | 'fitLogs'
-  | 'partner'
-  | 'partnerLogs'
-  | 'partnerHabits'
-> &
-  Partial<SharedProps>
-
-export default function Dashboard({
-  habits,
-  logs,
-  logHabit,
-  dsaProg,
-  startupProg,
-  fitLogs,
-  partner,
-  partnerLogs,
-  partnerHabits,
-}: DashboardProps) {
+export default function Dashboard() {
+  const {
+    habits,
+    logs,
+    logHabit,
+    dsaProg,
+    startupProg,
+    fitLogs,
+    partner,
+    partnerLogs,
+    partnerHabits,
+  } = useData()
   const [aiText, setAiText] = useState('')
   const [aiLoad, setAiLoad] = useState(false)
   const today = todayStr()

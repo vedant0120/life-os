@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import { LogRow, calcStats, todayStr } from './shared'
 import { ANCHOR_HABITS, CATEGORIES, CAT_COLORS, getMeta } from '../data/constants'
-import type { SharedProps, HabitStats } from '../types'
+import { useData } from '../stores/DataContext'
+import type { HabitStats } from '../types'
 
-type TodayProps = Pick<SharedProps, 'habits' | 'logs' | 'logHabit'> & Partial<SharedProps>
-
-export default function Today({ habits, logs, logHabit }: TodayProps) {
+export default function Today() {
+  const { habits, logs, logHabit } = useData()
   const today = todayStr()
   const isWeekend = [0, 6].includes(new Date().getDay())
 

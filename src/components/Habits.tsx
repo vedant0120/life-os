@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react'
 import { calcStats, last14 } from './shared'
 import { getMeta, ANCHOR_HABITS, CATEGORIES } from '../data/constants'
-import type { SharedProps, HabitStats } from '../types'
+import { useData } from '../stores/DataContext'
+import type { HabitStats } from '../types'
 
-type HabitsProps = Pick<SharedProps, 'habits' | 'logs' | 'logHabit' | 'addHabit'> &
-  Partial<SharedProps>
-
-export default function Habits({ habits, logs, addHabit }: HabitsProps) {
+export default function Habits() {
+  const { habits, logs, addHabit } = useData()
   const [selHabit, setSelHabit] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')

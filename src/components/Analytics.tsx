@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import { calcStats, last14 } from './shared'
 import { ANCHOR_HABITS, getMeta, CAT_COLORS, CATEGORIES } from '../data/constants'
-import type { SharedProps, HabitStats } from '../types'
+import { useData } from '../stores/DataContext'
+import type { HabitStats } from '../types'
 
-type AnalyticsProps = Pick<SharedProps, 'habits' | 'logs'> & Partial<SharedProps>
-
-export default function Analytics({ habits, logs }: AnalyticsProps) {
+export default function Analytics() {
+  const { habits, logs } = useData()
   const L14 = last14()
 
   const statsMap = useMemo(() => {

@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
-import type { Profile, Reaction } from '../types'
+import { useAuth } from '../stores/AuthContext'
+import { useData } from '../stores/DataContext'
 
 // Navigation tab configuration — each entry maps a label (used as the visible
 // capitalized tab text) to its route path. `end` forces exact matching for
@@ -23,14 +23,11 @@ const NAV_ITEMS: readonly NavItem[] = [
   { label: 'analytics', to: '/analytics' },
 ]
 
-interface NavProps {
-  profile: Profile | null
-  partner: Profile | null
-  reactions: Reaction[]
-}
-
-export default function Nav({ profile, partner, reactions }: NavProps) {
-  const unread = reactions?.length || 0
+export default function Nav() {
+  const { session, profile, signOut } = useAuth()
+  const { partner, reactions } = useData()
+  // Only unread reactions addressed to me feed the dot badge.
+  const unread = reactions.filter((r) => !r.read && r.to_user === session?.user?.id).length
 
   return (
     <div
@@ -142,7 +139,7 @@ export default function Nav({ profile, partner, reactions }: NavProps) {
           )}
           <button
             className="btn"
-            onClick={() => supabase.auth.signOut()}
+            onClick={() => signOut()}
             style={{
               background: '#1a1a2a',
               color: '#555',

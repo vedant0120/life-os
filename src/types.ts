@@ -111,25 +111,6 @@ export interface OnboardingHabit {
   note: string
 }
 
-// SharedProps are the union of data + callbacks App.tsx injects into every
-// view component. Components may pick only what they need.
-export interface SharedProps {
-  session: Session
-  profile: Profile | null
-  partner: Profile | null
-  habits: Habit[]
-  logs: HabitLog[]
-  partnerLogs: HabitLog[]
-  partnerHabits: Habit[]
-  dsaProg: DSAProgress
-  startupProg: StartupProgress
-  fitLogs: FitnessLog[]
-  reactions: Reaction[]
-  logHabit: (habit: string, status: Exclude<Status, null>) => void
-  toggleDSA: (key: string) => void
-  toggleStartup: (key: string) => void
-  addFitnessLog: (entry: Partial<FitnessLog>) => void
-  addHabit: (name: string, category: string, color: string, icon: string) => void
-  sendReaction: (type: Reaction['type'], habitName: string | null, message: string) => void
-  linkPartner: (partnerEmail: string) => Promise<{ error?: string; success?: boolean }>
-}
+// NOTE: The old `SharedProps` interface was removed in Epic 4 — components
+// now read state and actions from `useAuth()` / `useData()` (src/stores/)
+// instead of receiving prop blobs from App.tsx.

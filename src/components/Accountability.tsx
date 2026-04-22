@@ -1,34 +1,22 @@
 import { useState } from 'react'
 import { LogRow, calcStats, todayStr } from './shared'
 import { ANCHOR_HABITS, getMeta } from '../data/constants'
-import type { SharedProps, HabitStats } from '../types'
+import { useAuth } from '../stores/AuthContext'
+import { useData } from '../stores/DataContext'
+import type { HabitStats } from '../types'
 
-type AccountabilityProps = Pick<
-  SharedProps,
-  | 'partner'
-  | 'partnerHabits'
-  | 'partnerLogs'
-  | 'reactions'
-  | 'sendReaction'
-  | 'linkPartner'
-  | 'profile'
-  | 'session'
-  | 'habits'
-  | 'logs'
-> &
-  Partial<SharedProps>
-
-export default function Accountability({
-  partner,
-  partnerHabits,
-  partnerLogs,
-  reactions,
-  sendReaction,
-  linkPartner,
-  session,
-  habits,
-  logs,
-}: AccountabilityProps) {
+export default function Accountability() {
+  const { session } = useAuth()
+  const {
+    partner,
+    partnerHabits,
+    partnerLogs,
+    reactions,
+    sendReaction,
+    linkPartner,
+    habits,
+    logs,
+  } = useData()
   const [email, setEmail] = useState('')
   const [linking, setLinking] = useState(false)
   const [linkError, setLinkError] = useState('')
