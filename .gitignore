@@ -3,3 +3,16 @@ dist
 .env
 .DS_Store
 *.local
+
+# env
+.env.local
+.env.*.local
+
+# build output
+build/
+.vercel/
+.firebase/
+
+# local tooling / agent state
+.taskboard/
+.sisyphus/
