@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../stores/AuthContext'
 import { useData } from '../stores/DataContext'
+import { useInstallPrompt } from '../hooks/useInstallPrompt'
 
 // Navigation tab configuration — each entry maps a label (used as the visible
 // capitalized tab text) to its route path. `end` forces exact matching for
@@ -26,6 +28,8 @@ const NAV_ITEMS: readonly NavItem[] = [
 export default function Nav() {
   const { session, profile, signOut } = useAuth()
   const { partner, reactions } = useData()
+  const { canInstall, promptInstall } = useInstallPrompt()
+  const [dismissedInstall, setDismissedInstall] = useState(false)
   // Only unread reactions addressed to me feed the dot badge.
   const unread = reactions.filter((r) => !r.read && r.to_user === session?.userId).length
 
@@ -117,6 +121,40 @@ export default function Nav() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {canInstall && !dismissedInstall && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <button
+                className="btn"
+                onClick={() => void promptInstall()}
+                style={{
+                  background: '#1a1a2a',
+                  color: '#818cf8',
+                  padding: '4px 10px',
+                  fontFamily: 'inherit',
+                  border: '1px solid #2a2a3a',
+                  fontSize: 11,
+                }}
+                title="Install Life OS as an app"
+              >
+                Install app
+              </button>
+              <button
+                onClick={() => setDismissedInstall(true)}
+                aria-label="Dismiss install prompt"
+                style={{
+                  background: 'transparent',
+                  color: '#555',
+                  padding: '4px 6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  lineHeight: 1,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
           {partner && (
             <div
               style={{

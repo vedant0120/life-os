@@ -162,6 +162,10 @@ automatically.
 - All personal data (habits, goals, logs) lives in Firestore per-user;
   no content is baked into the codebase.
 
+## PWA
+
+Life OS is installable as a Progressive Web App. On Chrome/Edge desktop, Android Chrome, and iOS Safari ("Add to Home Screen"), it installs to your laptop dock or phone home screen and runs in its own standalone window. The service worker precaches the app shell so the UI loads even offline — Firestore live data still requires a connection, but navigation and the static shell keep working.
+
 ## License
 
 MIT.

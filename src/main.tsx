@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
+import { registerSW } from 'virtual:pwa-register'
 import App from './App'
 import { AuthProvider } from './stores/AuthContext'
 import { DataProvider } from './stores/DataContext'
@@ -20,3 +21,5 @@ ReactDOM.createRoot(rootEl).render(
     </BrowserRouter>
   </React.StrictMode>
 )
+
+registerSW({ immediate: true })
