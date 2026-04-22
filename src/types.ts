@@ -112,3 +112,88 @@ export interface OnboardingHabit {
 // NOTE: The old `SharedProps` interface was removed in Epic 4 — components
 // now read state and actions from `useAuth()` / `useData()` (src/stores/)
 // instead of receiving prop blobs from App.tsx.
+
+// ─── Tracker archetypes (P2.5) ───────────────────────────────────────────────
+// Five shapes of "thing a user wants to track" surface in the app. Modeled as
+// a discriminated union on `archetype` so the TrackerBuilder (P2.6) and the
+// Trackers tab (P3.4) can branch at the type level without casts.
+export type TrackerArchetype =
+  | 'streak_habit'
+  | 'ordered_roadmap'
+  | 'numeric_log'
+  | 'checklist'
+  | 'freeform_journal'
+
+// Fields every tracker has. `createdAt` / `updatedAt` are Firestore server
+// timestamps on the wire; kept as `unknown` to avoid leaking the SDK type.
+export interface TrackerCommon {
+  id: string
+  archetype: TrackerArchetype
+  name: string
+  emoji?: string
+  color?: string
+  order?: number
+  createdAt?: unknown
+  updatedAt?: unknown
+}
+
+// Streak habits reuse the users/{uid}/habits collection. This variant exists
+// so the union covers all five archetypes uniformly; the doc lives elsewhere.
+export interface StreakHabitTracker extends TrackerCommon {
+  archetype: 'streak_habit'
+  habitName: string
+}
+
+export interface RoadmapTopic {
+  id: string
+  label: string
+  done?: boolean
+}
+export interface RoadmapMonth {
+  label: string
+  topics: RoadmapTopic[]
+}
+export interface OrderedRoadmapTracker extends TrackerCommon {
+  archetype: 'ordered_roadmap'
+  months: RoadmapMonth[]
+  targetLabel?: string
+}
+
+export interface NumericLogTracker extends TrackerCommon {
+  archetype: 'numeric_log'
+  unit?: string
+  dailyGoal?: number
+}
+export interface NumericEntry {
+  date: string // YYYY-MM-DD (doc id)
+  value: number
+  note?: string
+}
+
+export interface ChecklistItem {
+  id: string
+  label: string
+  done?: boolean
+}
+export interface ChecklistTracker extends TrackerCommon {
+  archetype: 'checklist'
+  items: ChecklistItem[]
+}
+
+export interface FreeformJournalTracker extends TrackerCommon {
+  archetype: 'freeform_journal'
+  prompt?: string
+}
+export interface JournalEntry {
+  id: string
+  date: string // YYYY-MM-DD
+  text: string
+  createdAt?: unknown
+}
+
+export type Tracker =
+  | StreakHabitTracker
+  | OrderedRoadmapTracker
+  | NumericLogTracker
+  | ChecklistTracker
+  | FreeformJournalTracker

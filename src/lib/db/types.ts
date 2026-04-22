@@ -5,11 +5,13 @@ import type {
   DSAProgress,
   FitnessLog,
   HabitLog,
+  NumericEntry,
   OnboardingPayload,
   Profile,
   Reaction,
   StartupProgress,
   Status,
+  Tracker,
 } from '../../types'
 
 // Normalized session shape — the interface only needs userId + email, so
@@ -62,4 +64,40 @@ export interface DataClient {
   markReactionRead(id: string): Promise<void>
   linkPartner(userId: string, partnerEmail: string): Promise<{ error?: string; success?: boolean }>
   completeOnboarding(userId: string, payload: OnboardingPayload): Promise<void>
+
+  // ── Trackers (P2.5) ───────────────────────────────────────────────────────
+  // CRUD on users/{uid}/trackers. Streak habits reuse the habits collection
+  // and are NOT written through here — only the other four archetypes.
+  subscribeTrackers(userId: string, cb: (trackers: Tracker[]) => void): Unsubscribe
+  createTracker(userId: string, tracker: Omit<Tracker, 'id'>): Promise<string>
+  updateTracker(userId: string, trackerId: string, patch: Partial<Tracker>): Promise<void>
+  deleteTracker(userId: string, trackerId: string): Promise<void>
+
+  // Per-archetype entry methods (unbounded time-series use subcollections;
+  // bounded arrays on checklist/roadmap are patched via updateTracker).
+  logNumericEntry(userId: string, trackerId: string, entry: NumericEntry): Promise<void>
+  toggleChecklistItem(
+    userId: string,
+    trackerId: string,
+    itemId: string,
+    done: boolean
+  ): Promise<void>
+  addJournalEntry(
+    userId: string,
+    trackerId: string,
+    entry: { date: string; text: string }
+  ): Promise<string>
+  updateJournalEntry(
+    userId: string,
+    trackerId: string,
+    entryId: string,
+    text: string
+  ): Promise<void>
+  toggleRoadmapTopic(
+    userId: string,
+    trackerId: string,
+    monthIndex: number,
+    topicId: string,
+    done: boolean
+  ): Promise<void>
 }

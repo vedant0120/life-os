@@ -22,6 +22,7 @@ import {
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -37,13 +38,16 @@ import {
 } from 'firebase/firestore'
 import { getFirebaseAuth, getFirestoreDb } from '../firebase'
 import type {
+  ChecklistItem,
   DSAProgress,
   FitnessLog,
   HabitLog,
   Profile,
   Reaction,
+  RoadmapMonth,
   StartupProgress,
   Status,
+  Tracker,
 } from '../../types'
 import type { AppSession, DataClient, Unsubscribe } from './types'
 
@@ -396,5 +400,87 @@ export const firebaseClient: DataClient = {
         await linkBatch.commit()
       }
     }
+  },
+
+  // ── Trackers (P2.5) ───────────────────────────────────────────────────────
+  // Firestore layout: users/{uid}/trackers/{trackerId} holds the common fields
+  // plus archetype-specific embedded arrays (items for checklist, months for
+  // roadmap — both bounded). Unbounded time-series (numeric_log entries and
+  // freeform_journal entries) live in the `entries` subcollection keyed by
+  // YYYY-MM-DD (numeric, one-per-day) or an auto-id (journal, many-per-day).
+  subscribeTrackers(userId, cb): Unsubscribe {
+    const q = query(
+      collection(getFirestoreDb(), 'users', userId, 'trackers'),
+      orderBy('order'),
+      limit(200)
+    )
+    return onSnapshot(q, (snap) => {
+      cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Tracker, 'id'>) }) as Tracker))
+    })
+  },
+  async createTracker(userId, tracker) {
+    const ref = await addDoc(collection(getFirestoreDb(), 'users', userId, 'trackers'), {
+      ...tracker,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+    return ref.id
+  },
+  async updateTracker(userId, trackerId, patch) {
+    await updateDoc(doc(getFirestoreDb(), 'users', userId, 'trackers', trackerId), {
+      ...patch,
+      updatedAt: serverTimestamp(),
+    })
+  },
+  async deleteTracker(userId, trackerId) {
+    // Note: this does NOT cascade-delete the `entries` subcollection. Client
+    // SDK can't do that atomically; a rare cleanup is acceptable for now.
+    await deleteDoc(doc(getFirestoreDb(), 'users', userId, 'trackers', trackerId))
+  },
+
+  async logNumericEntry(userId, trackerId, entry) {
+    // One doc per day; last-write-wins on same date.
+    await setDoc(
+      doc(getFirestoreDb(), 'users', userId, 'trackers', trackerId, 'entries', entry.date),
+      { value: entry.value, note: entry.note ?? null, date: entry.date },
+      { merge: true }
+    )
+  },
+  async toggleChecklistItem(userId, trackerId, itemId, done) {
+    // Checklist items live IN the tracker doc — read, mutate the matching
+    // item, write back. Bounded (~<100 items) so a full rewrite is fine.
+    const ref = doc(getFirestoreDb(), 'users', userId, 'trackers', trackerId)
+    const snap = await getDoc(ref)
+    if (!snap.exists()) return
+    const data = snap.data() as { items?: ChecklistItem[] }
+    const items = (data.items ?? []).map((it) => (it.id === itemId ? { ...it, done } : it))
+    await updateDoc(ref, { items, updatedAt: serverTimestamp() })
+  },
+  async addJournalEntry(userId, trackerId, entry) {
+    const ref = await addDoc(
+      collection(getFirestoreDb(), 'users', userId, 'trackers', trackerId, 'entries'),
+      { text: entry.text, date: entry.date, createdAt: serverTimestamp() }
+    )
+    return ref.id
+  },
+  async updateJournalEntry(userId, trackerId, entryId, text) {
+    await updateDoc(
+      doc(getFirestoreDb(), 'users', userId, 'trackers', trackerId, 'entries', entryId),
+      { text }
+    )
+  },
+  async toggleRoadmapTopic(userId, trackerId, monthIndex, topicId, done) {
+    // months[] is embedded in the tracker doc (6-12 months). Read + rewrite
+    // the single changed month's topics array.
+    const ref = doc(getFirestoreDb(), 'users', userId, 'trackers', trackerId)
+    const snap = await getDoc(ref)
+    if (!snap.exists()) return
+    const data = snap.data() as { months?: RoadmapMonth[] }
+    const months = (data.months ?? []).map((m, i) =>
+      i === monthIndex
+        ? { ...m, topics: m.topics.map((t) => (t.id === topicId ? { ...t, done } : t)) }
+        : m
+    )
+    await updateDoc(ref, { months, updatedAt: serverTimestamp() })
   },
 }
