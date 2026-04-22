@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../stores/AuthContext'
 import { useInstallPrompt } from '../hooks/useInstallPrompt'
+import Sheet from './ui/Sheet'
 
 interface TabItem {
   label: string
@@ -44,57 +45,48 @@ export default function BottomTabs({ className = '' }: Props) {
 
   return (
     <>
-      {showMore && (
-        <div className="md:hidden fixed inset-0 bg-black/60 z-40" onClick={closeMore} aria-hidden />
-      )}
-      {showMore && (
-        <div
-          className="md:hidden fixed left-0 right-0 bottom-16 z-50 bg-surface border-t border-border rounded-t-xl pb-[env(safe-area-inset-bottom)]"
-          role="dialog"
-          aria-label="More navigation"
-        >
-          <div className="grid grid-cols-3 gap-1 p-3">
-            {MORE.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                onClick={closeMore}
-                className={({ isActive }) =>
-                  `flex flex-col items-center gap-1 py-3 rounded-lg text-xs ${
-                    isActive ? 'bg-surface-2 text-brand' : 'text-muted hover:text-text'
-                  }`
-                }
-              >
-                <span className="text-lg leading-none">{item.icon}</span>
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
-          </div>
-          <div className="border-t border-border p-3 flex flex-col gap-2">
-            {canInstall && (
-              <button
-                onClick={() => {
-                  void promptInstall()
-                  closeMore()
-                }}
-                className="w-full px-3 py-2 rounded-lg text-xs bg-surface-2 text-brand"
-              >
-                Install app
-              </button>
-            )}
+      <Sheet open={showMore} onClose={closeMore} title="More">
+        <div className="grid grid-cols-3 gap-1">
+          {MORE.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              onClick={closeMore}
+              className={({ isActive }) =>
+                `flex flex-col items-center gap-1 py-3 rounded-lg text-xs ${
+                  isActive ? 'bg-surface-2 text-brand' : 'text-muted hover:text-text'
+                }`
+              }
+            >
+              <span className="text-lg leading-none">{item.icon}</span>
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+        <div className="mt-3 pt-3 border-t border-border flex flex-col gap-2">
+          {canInstall && (
             <button
               onClick={() => {
-                void signOut()
+                void promptInstall()
                 closeMore()
               }}
-              className="w-full px-3 py-2 rounded-lg text-xs bg-surface-2 text-muted hover:text-text"
+              className="w-full px-3 py-2 rounded-lg text-xs bg-surface-2 text-brand"
             >
-              Sign out
+              Install app
             </button>
-          </div>
+          )}
+          <button
+            onClick={() => {
+              void signOut()
+              closeMore()
+            }}
+            className="w-full px-3 py-2 rounded-lg text-xs bg-surface-2 text-muted hover:text-text"
+          >
+            Sign out
+          </button>
         </div>
-      )}
+      </Sheet>
 
       <nav
         className={`${className} fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border flex items-stretch pb-[env(safe-area-inset-bottom)]`}
