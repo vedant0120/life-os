@@ -179,7 +179,7 @@ export default function Dashboard() {
             Analytics <ArrowRight size={12} aria-hidden />
           </Link>
         </div>
-        <div className="grid grid-cols-7 gap-2">
+        <div className="flex items-end gap-2">
           {days.map((d, i) => {
             const pct = dayCompletion[i]
             const intensity =
@@ -189,9 +189,9 @@ export default function Dashboard() {
               pct > 0 ? 'bg-brand/20' :
               'bg-surface-3'
             return (
-              <div key={d.iso} className="flex flex-col items-center gap-1.5">
+              <div key={d.iso} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
                 <div
-                  className={`w-full aspect-square rounded-md ${intensity} ${
+                  className={`w-full h-10 rounded-md ${intensity} ${
                     d.isToday ? 'ring-2 ring-brand/60 ring-offset-2 ring-offset-surface' : ''
                   }`}
                   title={`${d.iso}: ${pct}%`}
