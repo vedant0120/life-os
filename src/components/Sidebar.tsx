@@ -64,10 +64,10 @@ const GROUPS: readonly NavGroup[] = [
 
 const navCls = (isActive: boolean) =>
   [
-    'group relative h-9 px-3 rounded-md flex items-center gap-3 text-sm font-medium transition-colors',
+    'group h-10 px-3.5 rounded-lg flex items-center gap-3 text-sm font-medium transition-colors',
     isActive
-      ? 'bg-brand/15 text-text'
-      : 'text-muted hover:text-text hover:bg-surface-2',
+      ? 'bg-brand/15 text-brand'
+      : 'text-text/75 hover:text-text hover:bg-surface-2',
   ].join(' ')
 
 export default function Sidebar() {
@@ -77,15 +77,15 @@ export default function Sidebar() {
   const initial = displayName.trim().charAt(0).toUpperCase() || 'U'
 
   return (
-    <aside className="hidden lg:flex flex-col w-60 lg:w-16 xl:w-60 shrink-0 bg-surface border-r border-border h-screen sticky top-0 px-3 xl:px-4 py-5 gap-5">
-      <div className="flex items-center gap-3 px-1">
+    <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-surface border-r border-border h-screen sticky top-0 px-4 py-5 gap-5">
+      <div className="flex items-center gap-3 px-1.5">
         <div
           className="w-9 h-9 rounded-md bg-gradient-to-br from-brand to-brand-strong flex items-center justify-center text-white text-sm font-semibold shrink-0"
           aria-hidden
         >
           {initial}
         </div>
-        <div className="lg:hidden xl:flex flex-col min-w-0">
+        <div className="flex flex-col min-w-0">
           <span className="text-[11px] font-semibold tracking-[0.18em] text-muted uppercase leading-none">
             Life OS
           </span>
@@ -93,10 +93,10 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 flex flex-col gap-4 overflow-y-auto -mx-1 px-1">
+      <nav className="flex-1 flex flex-col gap-4 overflow-y-auto">
         {GROUPS.map((group) => (
-          <div key={group.label} className="flex flex-col gap-1">
-            <div className="hidden xl:block px-3 text-[10px] font-semibold tracking-[0.16em] text-muted/70 uppercase">
+          <div key={group.label} className="flex flex-col gap-0.5">
+            <div className="px-3.5 mb-1 text-[10px] font-semibold tracking-[0.16em] text-muted/80 uppercase">
               {group.label}
             </div>
             {group.items.map(({ label, to, Icon, end }) => (
@@ -105,25 +105,21 @@ export default function Sidebar() {
                 to={to}
                 end={end}
                 title={label}
-                className={({ isActive }) =>
-                  `${navCls(isActive)} lg:justify-center xl:justify-start`
-                }
+                className={({ isActive }) => navCls(isActive)}
               >
                 {({ isActive }) => (
                   <>
-                    <span
-                      className={`absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-r bg-brand transition-opacity ${
-                        isActive ? 'opacity-100' : 'opacity-0'
-                      }`}
-                      aria-hidden
-                    />
                     <Icon
                       size={18}
-                      strokeWidth={2.5}
+                      strokeWidth={2.25}
                       aria-hidden
-                      className={isActive ? 'text-brand' : 'text-text/80 group-hover:text-text'}
+                      className={
+                        isActive
+                          ? 'text-brand shrink-0'
+                          : 'text-text/70 group-hover:text-text shrink-0'
+                      }
                     />
-                    <span className="lg:hidden xl:inline">{label}</span>
+                    <span>{label}</span>
                   </>
                 )}
               </NavLink>
@@ -132,26 +128,26 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto pt-3 border-t border-border flex flex-col gap-1.5">
+      <div className="mt-auto pt-3 border-t border-border flex flex-col gap-1">
         {canInstall && (
           <button
             type="button"
             onClick={() => void promptInstall()}
             title="Install app"
-            className={`${navCls(false)} lg:justify-center xl:justify-start`}
+            className={navCls(false)}
           >
-            <Download size={18} strokeWidth={2.5} aria-hidden />
-            <span className="lg:hidden xl:inline">Install app</span>
+            <Download size={18} strokeWidth={2.25} className="shrink-0" aria-hidden />
+            <span>Install app</span>
           </button>
         )}
         <button
           type="button"
           onClick={() => void signOut()}
           title="Sign out"
-          className={`${navCls(false)} lg:justify-center xl:justify-start`}
+          className={navCls(false)}
         >
-          <LogOut size={18} strokeWidth={2.5} aria-hidden />
-          <span className="lg:hidden xl:inline">Sign out</span>
+          <LogOut size={18} strokeWidth={2.25} className="shrink-0" aria-hidden />
+          <span>Sign out</span>
         </button>
       </div>
     </aside>

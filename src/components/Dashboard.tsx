@@ -159,15 +159,15 @@ export default function Dashboard() {
         {stats.map((c) => (
           <div
             key={c.label}
-            className="rounded-lg bg-surface border border-border p-5 flex flex-col gap-3 min-h-[112px]"
+            className="rounded-lg bg-surface border border-border p-5 flex flex-col items-center text-center gap-2 min-h-[120px]"
           >
             <div className="text-xs font-semibold tracking-wider uppercase text-text/70">
               {c.label}
             </div>
-            <div className={`text-3xl font-bold tabular-nums leading-none ${c.tone}`}>
+            <div className={`text-4xl font-bold tabular-nums leading-none ${c.tone} mt-1`}>
               {c.value}
             </div>
-            <div className="text-xs text-muted mt-auto truncate">{c.hint}</div>
+            <div className="text-xs text-muted mt-auto">{c.hint}</div>
           </div>
         ))}
       </section>
