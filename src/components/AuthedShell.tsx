@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import BottomTabs from './BottomTabs'
+import CommandPalette from './ui/CommandPalette'
 import Dashboard from './Dashboard'
 import Today from './Today'
 import Habits from './Habits'
@@ -14,6 +16,19 @@ import Accountability from './Accountability'
 
 // Authenticated shell: sidebar (desktop) or bottom tabs (mobile) + route outlet.
 export default function AuthedShell() {
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   return (
     <div className="min-h-screen bg-bg text-text font-sans flex">
       <Sidebar className="hidden md:flex" />
@@ -37,6 +52,7 @@ export default function AuthedShell() {
         </div>
       </main>
       <BottomTabs className="md:hidden" />
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   )
 }
