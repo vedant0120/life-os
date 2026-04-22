@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../stores/AuthContext'
 
 interface AuthProps {
   initialMode?: 'login' | 'signup'
@@ -8,6 +8,7 @@ interface AuthProps {
 }
 
 export default function Auth({ initialMode = 'login', onBack: _onBack }: AuthProps) {
+  const { signIn, signUp } = useAuth()
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode) // login | signup
   const [email, setEmail] = useState('')
   const [password, setPass] = useState('')
@@ -20,13 +21,15 @@ export default function Auth({ initialMode = 'login', onBack: _onBack }: AuthPro
     e.preventDefault()
     setError('')
     setLoading(true)
-    if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) setError(error.message)
-    } else {
-      const { error } = await supabase.auth.signUp({ email, password, options: { data: { name } } })
-      if (error) setError(error.message)
-      else setDone(true)
+    try {
+      if (mode === 'login') {
+        await signIn(email, password)
+      } else {
+        await signUp(email, password, name)
+        setDone(true)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Authentication failed')
     }
     setLoading(false)
   }

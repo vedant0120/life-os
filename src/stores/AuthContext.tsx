@@ -1,20 +1,21 @@
 import { createContext, useCallback, useContext, useEffect, useReducer } from 'react'
 import type { ReactNode } from 'react'
-import { supabase } from '../lib/supabase'
-import type { Profile, Session } from '../types'
+import { db } from '../lib/db'
+import type { AppSession } from '../lib/db'
+import type { Profile } from '../types'
 
 // ─── State + actions ─────────────────────────────────────────────────────────
 // Narrow domain for auth: session, the current user's profile, and a loading
-// flag that is true only until Supabase resolves the initial session.
+// flag that is true only until the backend resolves the initial session.
 // The separate "data is loading" concern lives in DataContext.
 export interface AuthState {
-  session: Session | null
+  session: AppSession | null
   profile: Profile | null
   loading: boolean
 }
 
 type AuthAction =
-  | { type: 'SET_SESSION'; session: Session | null }
+  | { type: 'SET_SESSION'; session: AppSession | null }
   | { type: 'SET_PROFILE'; profile: Profile | null }
   | { type: 'SET_LOADING'; loading: boolean }
 
@@ -33,6 +34,8 @@ function reducer(state: AuthState, action: AuthAction): AuthState {
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 interface AuthContextValue extends AuthState {
+  signIn: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string, name?: string) => Promise<void>
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
   // Allow other providers (DataContext) to update the cached profile when
@@ -46,17 +49,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single()
-    dispatch({ type: 'SET_PROFILE', profile: (data as Profile | null) ?? null })
+    const p = await db.getProfile(userId)
+    dispatch({ type: 'SET_PROFILE', profile: p })
   }, [])
 
   const refreshProfile = useCallback(async () => {
     if (!state.session) return
-    await fetchProfile(state.session.user.id)
+    await fetchProfile(state.session.userId)
   }, [state.session, fetchProfile])
 
+  const signIn = useCallback(async (email: string, password: string) => {
+    await db.signInWithPassword(email, password)
+  }, [])
+
+  const signUp = useCallback(async (email: string, password: string, name?: string) => {
+    await db.signUp(email, password, name)
+  }, [])
+
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    await db.signOut()
   }, [])
 
   const setProfile = useCallback((p: Profile | null) => {
@@ -67,23 +78,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // getSession() on mount, and keep session in sync via onAuthStateChange.
   // Profile fetch is triggered whenever session becomes available.
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    db.getSession().then((session) => {
       dispatch({ type: 'SET_SESSION', session })
-      if (session) fetchProfile(session.user.id)
+      if (session) fetchProfile(session.userId)
       dispatch({ type: 'SET_LOADING', loading: false })
     })
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_e, session) => {
+    const unsubscribe = db.onAuthStateChange((session) => {
       dispatch({ type: 'SET_SESSION', session })
-      if (session) fetchProfile(session.user.id)
+      if (session) fetchProfile(session.userId)
       else dispatch({ type: 'SET_PROFILE', profile: null })
     })
-    return () => subscription.unsubscribe()
+    return unsubscribe
   }, [fetchProfile])
 
   return (
-    <AuthContext.Provider value={{ ...state, signOut, refreshProfile, setProfile }}>
+    <AuthContext.Provider value={{ ...state, signIn, signUp, signOut, refreshProfile, setProfile }}>
       {children}
     </AuthContext.Provider>
   )

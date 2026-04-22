@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useReducer } from 'react'
 import type { ReactNode } from 'react'
-import { supabase } from '../lib/supabase'
+import { db } from '../lib/db'
 import { useAuth } from './AuthContext'
 import type {
   DSAProgress,
@@ -136,34 +136,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // ── Loaders ───────────────────────────────────────────────────────────────
   const loadPartner = useCallback(async (partnerId: string) => {
-    const { data: p } = await supabase.from('profiles').select('*').eq('id', partnerId).single()
+    const p = await db.getProfile(partnerId)
     if (p) {
-      dispatch({ type: 'SET_PARTNER', partner: p as Profile })
-      const { data: ph } = await supabase
-        .from('habits')
-        .select('*')
-        .eq('user_id', partnerId)
-        .eq('active', true)
-        .order('priority')
-      if (ph)
-        dispatch({
-          type: 'SET_PARTNER_HABITS',
-          habits: ph.map((h: { name: string }) => h.name),
-        })
-      const { data: pl } = await supabase
-        .from('habit_logs')
-        .select('*')
-        .eq('user_id', partnerId)
-        .order('date', { ascending: false })
-        .limit(200)
-      if (pl)
-        dispatch({
-          type: 'SET_PARTNER_LOGS',
-          logs: pl.map(
-            (l: { habit_name: string; date: string; status: Status }) =>
-              ({ h: l.habit_name, d: l.date, s: l.status }) as HabitLog
-          ),
-        })
+      dispatch({ type: 'SET_PARTNER', partner: p })
+      const [ph, pl] = await Promise.all([db.getHabits(partnerId), db.getLogs(partnerId)])
+      dispatch({ type: 'SET_PARTNER_HABITS', habits: ph })
+      dispatch({ type: 'SET_PARTNER_LOGS', logs: pl })
     }
   }, [])
 
@@ -171,71 +149,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (userId: string) => {
       dispatch({ type: 'SET_LOADING', loading: true })
       try {
-        const [profileResult, habitsResult] = await Promise.all([
-          supabase.from('profiles').select('*').eq('id', userId).single(),
-          supabase
-            .from('habits')
-            .select('*')
-            .eq('user_id', userId)
-            .eq('active', true)
-            .order('priority'),
-        ])
-        if (profileResult.data) {
-          setProfile(profileResult.data as Profile)
-          if (profileResult.data.partner_id) loadPartner(profileResult.data.partner_id)
+        const [profile, habits] = await Promise.all([db.getProfile(userId), db.getHabits(userId)])
+        if (profile) {
+          setProfile(profile)
+          if (profile.partner_id) loadPartner(profile.partner_id)
         }
-        if (!habitsResult.data || habitsResult.data.length === 0) {
+        if (!habits || habits.length === 0) {
           dispatch({ type: 'SET_NEEDS_ONBOARDING', value: true })
           dispatch({ type: 'SET_LOADING', loading: false })
           return
         }
-        dispatch({
-          type: 'SET_HABITS',
-          habits: habitsResult.data.map((h: { name: string }) => h.name),
-        })
+        dispatch({ type: 'SET_HABITS', habits })
 
-        const [logsRes, dsaRes, startupRes, fitRes, reactionsRes] = await Promise.all([
-          supabase
-            .from('habit_logs')
-            .select('*')
-            .eq('user_id', userId)
-            .order('date', { ascending: false })
-            .limit(500),
-          supabase.from('dsa_progress').select('*').eq('user_id', userId),
-          supabase.from('startup_progress').select('*').eq('user_id', userId),
-          supabase.from('fitness_logs').select('*').eq('user_id', userId).order('date'),
-          supabase
-            .from('accountability_reactions')
-            .select('*')
-            .or(`to_user.eq.${userId},from_user.eq.${userId}`)
-            .order('created_at', { ascending: false })
-            .limit(50),
+        const [logs, dsa, startup, fit] = await Promise.all([
+          db.getLogs(userId),
+          db.getDSAProgress(userId),
+          db.getStartupProgress(userId),
+          db.getFitnessLogs(userId),
         ])
-        if (logsRes.data)
-          dispatch({
-            type: 'SET_LOGS',
-            logs: logsRes.data.map(
-              (l: { habit_name: string; date: string; status: Status }) =>
-                ({ h: l.habit_name, d: l.date, s: l.status }) as HabitLog
-            ),
-          })
-        if (dsaRes.data) {
-          const p: DSAProgress = {}
-          dsaRes.data.forEach((d: { topic_key: string; completed: boolean }) => {
-            if (d.completed) p[d.topic_key] = true
-          })
-          dispatch({ type: 'SET_DSA', dsa: p })
-        }
-        if (startupRes.data) {
-          const p: StartupProgress = {}
-          startupRes.data.forEach((d: { task_key: string; completed: boolean }) => {
-            if (d.completed) p[d.task_key] = true
-          })
-          dispatch({ type: 'SET_STARTUP', startup: p })
-        }
-        if (fitRes.data) dispatch({ type: 'SET_FIT_LOGS', fitLogs: fitRes.data as FitnessLog[] })
-        if (reactionsRes.data)
-          dispatch({ type: 'SET_REACTIONS', reactions: reactionsRes.data as Reaction[] })
+        dispatch({ type: 'SET_LOGS', logs })
+        dispatch({ type: 'SET_DSA', dsa })
+        dispatch({ type: 'SET_STARTUP', startup })
+        dispatch({ type: 'SET_FIT_LOGS', fitLogs: fit })
       } finally {
         dispatch({ type: 'SET_LOADING', loading: false })
       }
@@ -245,52 +180,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   // ── Load + reset on session change ────────────────────────────────────────
   useEffect(() => {
-    if (session) loadAll(session.user.id)
+    if (session) loadAll(session.userId)
     else dispatch({ type: 'RESET' })
   }, [session, loadAll])
 
   // ── Realtime: partner logs + incoming reactions ───────────────────────────
-  // Mirrors the previous App.tsx subscription exactly: partner habit_log
-  // inserts/updates flow into partnerLogs, and accountability_reactions
-  // inserts addressed to me are pushed into the reactions list so Nav badge
-  // stays live.
+  // Mirrors the previous App.tsx subscription: partner habit_log inserts/
+  // updates flow into partnerLogs, and incoming reactions addressed to me are
+  // pushed into the reactions list so Nav badge stays live. Backend-agnostic
+  // via db.subscribePartnerLogs / db.subscribeReactions.
   useEffect(() => {
-    if (!session || !state.partner) return
-    const channel = supabase
-      .channel('realtime-partner')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'habit_logs',
-          filter: `user_id=eq.${state.partner.id}`,
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const l = payload.new as { habit_name: string; date: string; status: Status }
-            dispatch({
-              type: 'UPSERT_PARTNER_LOG',
-              log: { h: l.habit_name, d: l.date, s: l.status },
-            })
-          }
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'accountability_reactions',
-          filter: `to_user=eq.${session.user.id}`,
-        },
-        (payload) => {
-          dispatch({ type: 'PUSH_REACTION', reaction: payload.new as Reaction })
-        }
-      )
-      .subscribe()
+    if (!session) return
+    const unsubR = db.subscribeReactions(session.userId, (reactions) => {
+      dispatch({ type: 'SET_REACTIONS', reactions })
+    })
+    const unsubP = state.partner
+      ? db.subscribePartnerLogs(state.partner.id, (logs) => {
+          dispatch({ type: 'SET_PARTNER_LOGS', logs })
+        })
+      : null
     return () => {
-      supabase.removeChannel(channel)
+      unsubR()
+      if (unsubP) unsubP()
     }
   }, [session, state.partner])
 
@@ -300,12 +211,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!session) return
       const today = todayStr()
       dispatch({ type: 'UPSERT_LOG', log: { h: habitName, d: today, s: status } })
-      await supabase
-        .from('habit_logs')
-        .upsert(
-          { user_id: session.user.id, habit_name: habitName, date: today, status },
-          { onConflict: 'user_id,habit_name,date' }
-        )
+      await db.logHabit(session.userId, { h: habitName, d: today, s: status })
     },
     [session]
   )
@@ -315,12 +221,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!session) return
       const v = !state.dsaProg[key]
       dispatch({ type: 'TOGGLE_DSA', key, value: v })
-      await supabase
-        .from('dsa_progress')
-        .upsert(
-          { user_id: session.user.id, topic_key: key, completed: v },
-          { onConflict: 'user_id,topic_key' }
-        )
+      await db.toggleDSA(session.userId, key, v)
     },
     [session, state.dsaProg]
   )
@@ -330,12 +231,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!session) return
       const v = !state.startupProg[key]
       dispatch({ type: 'TOGGLE_STARTUP', key, value: v })
-      await supabase
-        .from('startup_progress')
-        .upsert(
-          { user_id: session.user.id, task_key: key, completed: v },
-          { onConflict: 'user_id,task_key' }
-        )
+      await db.toggleStartup(session.userId, key, v)
     },
     [session, state.startupProg]
   )
@@ -343,9 +239,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addFitnessLog = useCallback(
     async (entry: Partial<FitnessLog>) => {
       if (!session) return
-      const e: FitnessLog = { ...entry, user_id: session.user.id, date: todayStr() }
+      const e: FitnessLog = { ...entry, user_id: session.userId, date: todayStr() }
       dispatch({ type: 'ADD_FIT_LOG', log: e })
-      await supabase.from('fitness_logs').insert(e)
+      await db.addFitnessLog(session.userId, e)
     },
     [session]
   )
@@ -354,9 +250,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (name: string, category: string, color: string, icon: string) => {
       if (!session) return
       if (!name.trim()) return
-      await supabase
-        .from('habits')
-        .insert({ user_id: session.user.id, name, category, color, icon, priority: 50 })
+      await db.addHabit(session.userId, { name, category, color, icon, priority: 50 })
       dispatch({ type: 'ADD_HABIT', name })
     },
     [session]
@@ -366,14 +260,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (type: Reaction['type'], habitName: string | null, message: string) => {
       if (!state.partner || !session) return
       const r: Reaction = {
-        from_user: session.user.id,
+        from_user: session.userId,
         to_user: state.partner.id,
         type,
         habit_name: habitName,
         message,
         date: todayStr(),
       }
-      await supabase.from('accountability_reactions').insert(r)
+      await db.sendReaction(r)
       dispatch({ type: 'PUSH_REACTION', reaction: r })
     },
     [session, state.partner]
@@ -382,15 +276,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const linkPartner = useCallback(
     async (partnerEmail: string): Promise<{ error?: string; success?: boolean }> => {
       if (!session) return { error: 'Not signed in.' }
-      const { data: p } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', partnerEmail)
-        .single()
-      if (!p) return { error: 'No account found with that email.' }
-      await supabase.rpc('link_partners', { user_a: session.user.id, user_b: p.id })
-      await loadAll(session.user.id)
-      return { success: true }
+      const res = await db.linkPartner(session.userId, partnerEmail)
+      if (res.success) await loadAll(session.userId)
+      return res
     },
     [session, loadAll]
   )
@@ -398,71 +286,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const completeOnboarding = useCallback(
     async (onboardingData: OnboardingPayload) => {
       if (!session) return
-      const userId = session.user.id
-      const {
-        habitData,
-        name,
-        currentWeight,
-        targetWeight,
-        monthlyIncome,
-        wakeTime,
-        dsaTarget,
-        fitnessGoal,
-        partnerEmail,
-      } = onboardingData
-      await supabase
-        .from('profiles')
-        .update({
-          name,
-          onboarding_data: {
-            currentWeight,
-            targetWeight,
-            monthlyIncome,
-            wakeTime,
-            dsaTarget,
-            fitnessGoal,
-          },
-        })
-        .eq('id', userId)
-      if (habitData.length > 0) {
-        await supabase.from('habits').insert(
-          habitData.map((h, i) => ({
-            user_id: userId,
-            name: h.name,
-            category: h.category,
-            color: h.color,
-            icon: h.icon,
-            priority: i + 1,
-            note: h.note,
-          }))
-        )
-      }
-      if (currentWeight) {
-        await supabase.from('fitness_logs').insert({
-          user_id: userId,
-          date: todayStr(),
-          weight: parseFloat(currentWeight),
-          calories_eaten: 0,
-          calories_burned: 0,
-          note: 'Starting weight',
-        })
-      }
-      if (partnerEmail) {
-        const { data: p } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', partnerEmail)
-          .single()
-        if (p) await supabase.rpc('link_partners', { user_a: userId, user_b: p.id })
-      }
+      await db.completeOnboarding(session.userId, onboardingData)
       dispatch({ type: 'SET_NEEDS_ONBOARDING', value: false })
-      await loadAll(userId)
+      await loadAll(session.userId)
     },
     [session, loadAll]
   )
 
   const markReactionRead = useCallback(async (reactionId: string) => {
-    await supabase.from('accountability_reactions').update({ read: true }).eq('id', reactionId)
+    await db.markReactionRead(reactionId)
   }, [])
 
   return (

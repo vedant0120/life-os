@@ -27,7 +27,7 @@ export default function Nav() {
   const { session, profile, signOut } = useAuth()
   const { partner, reactions } = useData()
   // Only unread reactions addressed to me feed the dot badge.
-  const unread = reactions.filter((r) => !r.read && r.to_user === session?.user?.id).length
+  const unread = reactions.filter((r) => !r.read && r.to_user === session?.userId).length
 
   return (
     <div

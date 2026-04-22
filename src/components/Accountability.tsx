@@ -63,8 +63,8 @@ export default function Accountability() {
     setSending(false)
   }
 
-  const incomingReactions = reactions?.filter((r) => r.to_user === session?.user?.id) || []
-  const outgoingReactions = reactions?.filter((r) => r.from_user === session?.user?.id) || []
+  const incomingReactions = reactions?.filter((r) => r.to_user === session?.userId) || []
+  const outgoingReactions = reactions?.filter((r) => r.from_user === session?.userId) || []
 
   const reactionEmoji: Record<string, string> = {
     fire: '🔥',
@@ -363,7 +363,7 @@ export default function Accountability() {
             Recent Activity
           </div>
           {reactions?.slice(0, 15).map((r, i) => {
-            const isIncoming = r.to_user === session?.user?.id
+            const isIncoming = r.to_user === session?.userId
             return (
               <div
                 key={i}
