@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
+import { Activity, Route, LineChart, ListTodo, NotebookPen, type LucideIcon } from 'lucide-react'
 import Sheet from './ui/Sheet'
 import { db } from '../lib/db'
 import { useAuth } from '../stores/AuthContext'
 import type { Tracker, TrackerArchetype } from '../types'
 
-// ─── Archetype picker metadata (design brief §5) ─────────────────────────────
+// ─── Archetype picker metadata (design brief §3.2) ───────────────────────────
 interface ArchetypeCard {
   key: TrackerArchetype
-  emoji: string
+  Icon: LucideIcon
   name: string
   hint: string
   example: string
@@ -16,35 +17,35 @@ interface ArchetypeCard {
 const ARCHETYPES: ArchetypeCard[] = [
   {
     key: 'streak_habit',
-    emoji: '🔁',
+    Icon: Activity,
     name: 'Streak habit',
     hint: 'Daily yes/no check',
     example: 'e.g. Meditate',
   },
   {
     key: 'ordered_roadmap',
-    emoji: '🗺️',
+    Icon: Route,
     name: 'Ordered roadmap',
     hint: 'Phased multi-month plan',
-    example: 'e.g. DSA Apr–Sep',
+    example: 'e.g. Learning plan',
   },
   {
     key: 'numeric_log',
-    emoji: '📊',
+    Icon: LineChart,
     name: 'Numeric log',
     hint: 'Daily number toward a goal',
-    example: 'e.g. Weight → 78kg',
+    example: 'e.g. Body weight',
   },
   {
     key: 'checklist',
-    emoji: '✅',
+    Icon: ListTodo,
     name: 'Checklist',
     hint: 'One-time list of items',
     example: 'e.g. Q4 side-project',
   },
   {
     key: 'freeform_journal',
-    emoji: '📓',
+    Icon: NotebookPen,
     name: 'Freeform journal',
     hint: 'Dated text entries',
     example: 'e.g. Morning pages',
@@ -112,7 +113,7 @@ export default function TrackerBuilder({ open, onClose }: Props) {
   const [step, setStep] = useState<'pick' | 'configure'>('pick')
   const [archetype, setArchetype] = useState<TrackerArchetype | undefined>()
   const [name, setName] = useState('')
-  const [emoji, setEmoji] = useState('🎯')
+  const [avatar, setAvatar] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -120,7 +121,7 @@ export default function TrackerBuilder({ open, onClose }: Props) {
       setStep('pick')
       setArchetype(undefined)
       setName('')
-      setEmoji('🎯')
+      setAvatar('')
       setSubmitting(false)
     }
   }, [open])
@@ -131,7 +132,7 @@ export default function TrackerBuilder({ open, onClose }: Props) {
     try {
       await db.createTracker(
         session.userId,
-        buildPayload(archetype, { name: name.trim(), emoji, color: '#6366F1' })
+        buildPayload(archetype, { name: name.trim(), emoji: avatar, color: '#6366F1' })
       )
       onClose()
     } finally {
@@ -145,24 +146,25 @@ export default function TrackerBuilder({ open, onClose }: Props) {
     <Sheet open={open} onClose={onClose} title={title}>
       {step === 'pick' ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {ARCHETYPES.map((a) => (
-            <button
-              key={a.key}
-              type="button"
-              onClick={() => {
-                setArchetype(a.key)
-                setStep('configure')
-              }}
-              className="flex flex-col items-start gap-1 rounded-xl border border-border bg-surface p-3 text-left hover:border-brand focus:outline-none focus:ring-2 focus:ring-brand"
-            >
-              <div className="text-2xl" aria-hidden>
-                {a.emoji}
-              </div>
-              <div className="text-sm font-semibold text-text">{a.name}</div>
-              <div className="text-xs text-muted">{a.hint}</div>
-              <div className="text-xs text-muted italic">{a.example}</div>
-            </button>
-          ))}
+          {ARCHETYPES.map((a) => {
+            const { Icon } = a
+            return (
+              <button
+                key={a.key}
+                type="button"
+                onClick={() => {
+                  setArchetype(a.key)
+                  setStep('configure')
+                }}
+                className="flex flex-col items-start gap-2 rounded-lg border border-border bg-surface p-4 text-left hover:border-brand focus:outline-none focus:ring-2 focus:ring-brand"
+              >
+                <Icon size={24} className="text-brand" aria-hidden />
+                <div className="text-sm font-semibold text-text">{a.name}</div>
+                <div className="text-xs text-muted">{a.hint}</div>
+                <div className="text-xs text-muted italic">{a.example}</div>
+              </button>
+            )
+          })}
         </div>
       ) : (
         <form
@@ -179,17 +181,18 @@ export default function TrackerBuilder({ open, onClose }: Props) {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text focus:border-brand focus:outline-none"
+              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-text focus:border-brand focus:outline-none"
               autoFocus
             />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-muted">Emoji</span>
+            <span className="text-xs text-muted">Avatar (optional)</span>
             <input
               type="text"
-              value={emoji}
-              onChange={(e) => setEmoji(e.target.value)}
-              className="w-20 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text focus:border-brand focus:outline-none"
+              value={avatar}
+              onChange={(e) => setAvatar(e.target.value)}
+              placeholder="Optional emoji"
+              className="w-20 rounded-md border border-border bg-surface px-3 py-2 text-sm text-text focus:border-brand focus:outline-none"
             />
           </label>
           <div className="text-muted text-xs">
@@ -199,14 +202,14 @@ export default function TrackerBuilder({ open, onClose }: Props) {
             <button
               type="button"
               onClick={() => setStep('pick')}
-              className="rounded-lg border border-border px-3 py-2 text-sm text-text hover:bg-surface"
+              className="rounded-md border border-border px-3 py-2 text-sm text-text hover:bg-surface"
             >
               Back
             </button>
             <button
               type="submit"
               disabled={submitting || !name.trim()}
-              className="rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+              className="rounded-md bg-brand px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
             >
               {submitting ? 'Creating…' : 'Create'}
             </button>

@@ -14,7 +14,9 @@ import Schedule from './Schedule'
 import Analytics from './Analytics'
 import Accountability from './Accountability'
 
-// Authenticated shell: sidebar (desktop) or bottom tabs (mobile) + route outlet.
+// Authenticated shell: persistent sidebar on lg+, bottom tabs on <lg,
+// plus the ⌘K command palette. Self-managed responsive breakpoints live
+// on Sidebar (lg:flex) and BottomTabs (lg:hidden).
 export default function AuthedShell() {
   const [paletteOpen, setPaletteOpen] = useState(false)
 
@@ -30,10 +32,10 @@ export default function AuthedShell() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-bg text-text font-sans flex">
-      <Sidebar className="hidden md:flex" />
-      <main className="flex-1 min-w-0 pb-20 md:pb-0">
-        <div className="mx-auto max-w-5xl px-4 md:px-8 py-6">
+    <div className="flex min-h-screen bg-bg text-text font-sans">
+      <Sidebar />
+      <main className="flex-1 min-w-0 flex flex-col pb-14 lg:pb-0">
+        <div className="mx-auto w-full max-w-4xl xl:max-w-6xl px-6 md:px-8 py-6 md:py-8">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/today" element={<Today />} />
@@ -51,7 +53,7 @@ export default function AuthedShell() {
           </Routes>
         </div>
       </main>
-      <BottomTabs className="md:hidden" />
+      <BottomTabs />
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   )

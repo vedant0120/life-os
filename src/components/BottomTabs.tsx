@@ -1,5 +1,21 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import {
+  Sun,
+  CheckSquare,
+  BarChart3,
+  TrendingUp,
+  MoreHorizontal,
+  Home,
+  Wallet,
+  Utensils,
+  Heart,
+  Calendar,
+  Users,
+  Download,
+  LogOut,
+  type LucideIcon,
+} from 'lucide-react'
 import { useAuth } from '../stores/AuthContext'
 import { useInstallPrompt } from '../hooks/useInstallPrompt'
 import Sheet from './ui/Sheet'
@@ -7,36 +23,32 @@ import Sheet from './ui/Sheet'
 interface TabItem {
   label: string
   to: string
-  icon: string
+  Icon: LucideIcon
   end?: boolean
 }
 
 const PRIMARY: readonly TabItem[] = [
-  { label: 'Today', to: '/today', icon: '☀️' },
-  { label: 'Habits', to: '/habits', icon: '✅' },
-  { label: 'Trackers', to: '/trackers', icon: '📊' },
-  { label: 'Analytics', to: '/analytics', icon: '📈' },
+  { label: 'Today', to: '/today', Icon: Sun },
+  { label: 'Habits', to: '/habits', Icon: CheckSquare },
+  { label: 'Trackers', to: '/trackers', Icon: BarChart3 },
+  { label: 'Analytics', to: '/analytics', Icon: TrendingUp },
 ]
 
 const MORE: readonly TabItem[] = [
-  { label: 'Dashboard', to: '/', icon: '🏠', end: true },
-  { label: 'Finance', to: '/finance', icon: '💰' },
-  { label: 'Diet', to: '/diet', icon: '🥗' },
-  { label: 'Health', to: '/health', icon: '🫀' },
-  { label: 'Schedule', to: '/schedule', icon: '🗓️' },
-  { label: 'Accountability', to: '/accountability', icon: '🤝' },
+  { label: 'Dashboard', to: '/', Icon: Home, end: true },
+  { label: 'Finance', to: '/finance', Icon: Wallet },
+  { label: 'Diet', to: '/diet', Icon: Utensils },
+  { label: 'Health', to: '/health', Icon: Heart },
+  { label: 'Schedule', to: '/schedule', Icon: Calendar },
+  { label: 'Accountability', to: '/accountability', Icon: Users },
 ]
 
-interface Props {
-  className?: string
-}
-
-const tabCls = (isActive: boolean) =>
-  `flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-[10px] ${
-    isActive ? 'text-brand' : 'text-muted hover:text-text'
+const slotCls = (isActive: boolean) =>
+  `flex-1 flex flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${
+    isActive ? 'text-brand' : 'text-muted'
   }`
 
-export default function BottomTabs({ className = '' }: Props) {
+export default function BottomTabs() {
   const [showMore, setShowMore] = useState(false)
   const { signOut } = useAuth()
   const { canInstall, promptInstall } = useInstallPrompt()
@@ -46,70 +58,66 @@ export default function BottomTabs({ className = '' }: Props) {
   return (
     <>
       <Sheet open={showMore} onClose={closeMore} title="More">
-        <div className="grid grid-cols-3 gap-1">
-          {MORE.map((item) => (
+        <div className="grid grid-cols-3 gap-2">
+          {MORE.map(({ label, to, Icon, end }) => (
             <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
+              key={to}
+              to={to}
+              end={end}
               onClick={closeMore}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 py-3 rounded-lg text-xs ${
-                  isActive ? 'bg-surface-2 text-brand' : 'text-muted hover:text-text'
+                `flex flex-col items-center gap-1 py-3 rounded-md text-xs font-medium ${
+                  isActive ? 'bg-brand/10 text-brand' : 'text-muted hover:text-text'
                 }`
               }
             >
-              <span className="text-lg leading-none">{item.icon}</span>
-              <span>{item.label}</span>
+              <Icon size={20} aria-hidden />
+              <span>{label}</span>
             </NavLink>
           ))}
         </div>
         <div className="mt-3 pt-3 border-t border-border flex flex-col gap-2">
           {canInstall && (
             <button
+              type="button"
               onClick={() => {
                 void promptInstall()
                 closeMore()
               }}
-              className="w-full px-3 py-2 rounded-lg text-xs bg-surface-2 text-brand"
+              className="w-full h-10 px-3 rounded-md text-sm font-medium text-muted hover:text-text hover:bg-surface-2 flex items-center gap-3"
             >
-              Install app
+              <Download size={18} aria-hidden />
+              <span>Install app</span>
             </button>
           )}
           <button
+            type="button"
             onClick={() => {
               void signOut()
               closeMore()
             }}
-            className="w-full px-3 py-2 rounded-lg text-xs bg-surface-2 text-muted hover:text-text"
+            className="w-full h-10 px-3 rounded-md text-sm font-medium text-muted hover:text-text hover:bg-surface-2 flex items-center gap-3"
           >
-            Sign out
+            <LogOut size={18} aria-hidden />
+            <span>Sign out</span>
           </button>
         </div>
       </Sheet>
 
-      <nav
-        className={`${className} fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border flex items-stretch pb-[env(safe-area-inset-bottom)]`}
-      >
-        {PRIMARY.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => tabCls(isActive)}
-          >
-            <span className="text-lg leading-none">{item.icon}</span>
-            <span>{item.label}</span>
+      <nav className="lg:hidden fixed inset-x-0 bottom-0 h-14 bg-surface border-t border-border flex items-stretch pb-[env(safe-area-inset-bottom)] z-40">
+        {PRIMARY.map(({ label, to, Icon, end }) => (
+          <NavLink key={to} to={to} end={end} className={({ isActive }) => slotCls(isActive)}>
+            <Icon size={20} aria-hidden />
+            <span>{label}</span>
           </NavLink>
         ))}
         <button
+          type="button"
           onClick={() => setShowMore((v) => !v)}
-          className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 text-[10px] ${
-            showMore ? 'text-brand' : 'text-muted hover:text-text'
-          }`}
+          className={slotCls(showMore)}
           aria-expanded={showMore}
         >
-          <span className="text-lg leading-none">⋯</span>
+          <MoreHorizontal size={20} aria-hidden />
           <span>More</span>
         </button>
       </nav>
