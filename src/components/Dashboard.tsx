@@ -1,8 +1,25 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, Plus, Sparkles } from 'lucide-react'
 import { Ring, LogRow, calcStats, todayStr } from './shared'
 import { getMeta } from '../data/constants'
 import { useData } from '../stores/DataContext'
 import type { HabitStats } from '../types'
+
+const DAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+function last7Dates(): { iso: string; label: string; isToday: boolean }[] {
+  const out: { iso: string; label: string; isToday: boolean }[] = []
+  const today = new Date()
+  const todayIso = today.toISOString().split('T')[0]
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const iso = d.toISOString().split('T')[0]
+    out.push({ iso, label: DAY_LABELS[d.getDay()], isToday: iso === todayIso })
+  }
+  return out
+}
 
 export default function Dashboard() {
   const {
@@ -33,8 +50,6 @@ export default function Dashboard() {
     ? Math.round(habits.reduce((a, h) => a + (statsMap[h]?.rate || 0), 0) / habits.length)
     : 0
   const bestStreak = habits.length ? Math.max(...habits.map((h) => statsMap[h]?.longest || 0)) : 0
-  // Weight-lost card: derived from fitness logs. With < 2 entries, show "—"
-  // since we don't have a hardcoded starting weight to compare against.
   const weightLostLabel =
     fitLogs.length >= 2 && fitLogs[0].weight != null && fitLogs[fitLogs.length - 1].weight != null
       ? `${(fitLogs[0].weight as number) - (fitLogs[fitLogs.length - 1].weight as number)}kg`
@@ -44,211 +59,285 @@ export default function Dashboard() {
   const startupDone = Object.values(startupProg).filter(Boolean).length
   const startupTotal = Object.keys(startupProg).length
 
-  // Partner today
   const partnerToday = partnerLogs?.filter((l) => l.d === today) || []
   const partnerDone =
     partnerHabits?.filter((h) => partnerToday.find((l) => l.h === h && l.s === 'success')).length ||
     0
 
+  const days = last7Dates()
+  const dayCompletion = days.map((d) => {
+    if (!habits.length) return 0
+    const dayLogs = logs.filter((l) => l.d === d.iso)
+    const succ = habits.filter((h) => dayLogs.find((l) => l.h === h && l.s === 'success')).length
+    return Math.round((succ / habits.length) * 100)
+  })
+
+  const stats = [
+    {
+      label: 'Habit Score',
+      value: overallScore + '%',
+      hint: habits.length ? 'last 14d avg' : 'add a habit to start',
+      tone: 'text-brand',
+    },
+    {
+      label: 'Done Today',
+      value: `${doneToday}/${habits.length}`,
+      hint: habits.length ? 'tap to log →' : 'no habits yet',
+      tone: 'text-warn',
+    },
+    {
+      label: 'Best Streak',
+      value: bestStreak + 'd',
+      hint: bestStreak ? 'keep it going' : 'no streaks yet',
+      tone: 'text-text',
+    },
+    {
+      label: 'Weight Lost',
+      value: weightLostLabel,
+      hint: fitLogs.length ? `${fitLogs.length} logs` : 'no logs yet',
+      tone: 'text-success',
+    },
+  ]
+
+  const projects = [
+    {
+      label: 'DSA Roadmap',
+      icon: '💻',
+      pct: dsaTotal ? Math.min(Math.round((dsaDone / dsaTotal) * 100), 100) : 0,
+      color: '#3b82f6',
+      sub: dsaTotal ? `${dsaDone} / ${dsaTotal} tasks` : null,
+      to: '/trackers',
+    },
+    {
+      label: 'Startup',
+      icon: '🚀',
+      pct: startupTotal ? Math.min(Math.round((startupDone / startupTotal) * 100), 100) : 0,
+      color: '#f59e0b',
+      sub: startupTotal ? `${startupDone} / ${startupTotal} tasks` : null,
+      to: '/trackers',
+    },
+    {
+      label: 'Fitness',
+      icon: '💪',
+      pct: 0,
+      color: '#22c55e',
+      sub: fitLogs.length ? `${fitLogs.length} logs` : null,
+      to: '/health',
+    },
+  ]
+
   return (
-    <div className="fade">
-      <div style={{ marginBottom: 16 }}>
-        <div className="st">
+    <div className="fade flex flex-col gap-6">
+      {/* Header */}
+      <header>
+        <div className="text-[11px] font-semibold tracking-[0.18em] uppercase text-muted/80">
           {new Date().toLocaleDateString('en-US', {
             weekday: 'long',
             month: 'long',
             day: 'numeric',
-            year: 'numeric',
           })}
         </div>
-        <div className="pt">Let's get after it.</div>
-      </div>
+        <h1 className="text-2xl font-semibold text-text mt-1">Let's get after it.</h1>
+      </header>
 
       {/* Score cards */}
-      <div
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 9, marginBottom: 14 }}
+      <section
+        className="grid grid-cols-2 md:grid-cols-4 gap-3"
+        aria-label="Daily summary"
       >
-        {[
-          { l: 'Habit Score', v: overallScore + '%', c: '#818cf8' },
-          { l: 'Done Today', v: `${doneToday}/${habits.length}`, c: '#f97316' },
-          { l: 'Best Streak', v: bestStreak + 'd', c: '#ec4899' },
-          { l: 'Weight Lost', v: weightLostLabel, c: '#22c55e' },
-        ].map((c, i) => (
-          <div key={i} className="card" style={{ padding: '13px 11px' }}>
-            <div className="st">{c.l}</div>
-            <div
-              style={{ fontSize: 21, fontWeight: 800, color: c.c, lineHeight: 1.1, marginTop: 6 }}
-            >
-              {c.v}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Progress rings — divisors are dynamic based on the user's actual
-          tracker data; if they haven't set up a roadmap yet the ring stays
-          at 0% rather than comparing against a hardcoded total. */}
-      <div
-        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9, marginBottom: 14 }}
-      >
-        {[
-          {
-            label: 'DSA Roadmap',
-            icon: '💻',
-            pct: dsaTotal ? Math.min(Math.round((dsaDone / dsaTotal) * 100), 100) : 0,
-            color: '#3b82f6',
-            sub: dsaTotal ? `${dsaDone}/${dsaTotal} tasks` : 'No roadmap yet',
-          },
-          {
-            label: 'Startup',
-            icon: '🚀',
-            pct: startupTotal ? Math.min(Math.round((startupDone / startupTotal) * 100), 100) : 0,
-            color: '#f59e0b',
-            sub: startupTotal ? `${startupDone}/${startupTotal} tasks` : 'No roadmap yet',
-          },
-          {
-            label: 'Fitness',
-            icon: '💪',
-            pct: 0,
-            color: '#22c55e',
-            sub: fitLogs.length ? `${fitLogs.length} logs` : 'No logs yet',
-          },
-        ].map((c, i) => (
+        {stats.map((c) => (
           <div
-            key={i}
-            className="card"
-            style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 10 }}
+            key={c.label}
+            className="rounded-lg bg-surface border border-border p-4 flex flex-col justify-between min-h-[92px]"
           >
-            <Ring pct={c.pct} color={c.color} size={46} />
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: '#e8e6e1' }}>
-                {c.icon} {c.label}
-              </div>
-              <div style={{ fontSize: 9, color: '#555', marginTop: 2 }}>{c.sub}</div>
+            <div className="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted">
+              {c.label}
             </div>
+            <div className="flex items-end justify-between gap-2 mt-2">
+              <div className={`text-2xl font-semibold tabular-nums leading-none ${c.tone}`}>
+                {c.value}
+              </div>
+            </div>
+            <div className="text-[11px] text-muted mt-2 truncate">{c.hint}</div>
           </div>
         ))}
-      </div>
+      </section>
+
+      {/* 7-day strip */}
+      <section
+        aria-label="Last 7 days completion"
+        className="rounded-lg bg-surface border border-border p-4"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted">
+            Last 7 days
+          </div>
+          <Link
+            to="/analytics"
+            className="text-[11px] text-muted hover:text-text inline-flex items-center gap-1"
+          >
+            Analytics <ArrowRight size={12} aria-hidden />
+          </Link>
+        </div>
+        <div className="grid grid-cols-7 gap-2">
+          {days.map((d, i) => {
+            const pct = dayCompletion[i]
+            const intensity =
+              pct >= 80 ? 'bg-brand' :
+              pct >= 50 ? 'bg-brand/70' :
+              pct >= 20 ? 'bg-brand/40' :
+              pct > 0 ? 'bg-brand/20' :
+              'bg-surface-3'
+            return (
+              <div key={d.iso} className="flex flex-col items-center gap-1.5">
+                <div
+                  className={`w-full aspect-square rounded-md ${intensity} ${
+                    d.isToday ? 'ring-2 ring-brand/60 ring-offset-2 ring-offset-surface' : ''
+                  }`}
+                  title={`${d.iso}: ${pct}%`}
+                />
+                <div className="text-[10px] font-medium text-muted tabular-nums">{d.label}</div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Project rings */}
+      <section
+        className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+        aria-label="Projects"
+      >
+        {projects.map((p) => (
+          <Link
+            key={p.label}
+            to={p.to}
+            className="group rounded-lg bg-surface border border-border p-4 flex items-center gap-4 hover:border-border-strong transition-colors"
+          >
+            <Ring pct={p.pct} color={p.color} size={56} />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-text truncate">
+                <span className="mr-1.5" aria-hidden>{p.icon}</span>
+                {p.label}
+              </div>
+              <div className="text-[11px] text-muted mt-1 truncate">
+                {p.sub || 'Set up roadmap →'}
+              </div>
+            </div>
+            <ArrowRight
+              size={14}
+              className="text-muted group-hover:text-text transition-colors"
+              aria-hidden
+            />
+          </Link>
+        ))}
+      </section>
 
       {/* Partner today snapshot */}
       {partner && (
-        <div
-          style={{
-            background: '#0a0f1a',
-            border: '1px solid #1a2a1a',
-            borderRadius: 10,
-            padding: 12,
-            marginBottom: 14,
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 8,
-            }}
-          >
-            <div
-              style={{
-                fontSize: 9,
-                color: '#22c55e',
-                letterSpacing: 2,
-                textTransform: 'uppercase',
-                fontWeight: 700,
-              }}
-            >
-              🤝 {partner.name || 'Partner'} Today
+        <section className="rounded-lg bg-surface border border-border p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] font-semibold tracking-[0.16em] uppercase text-success">
+              🤝 {partner.name || 'Partner'} today
             </div>
-            <span style={{ fontSize: 11, color: '#22c55e', fontWeight: 700 }}>
+            <span className="text-xs text-success font-semibold tabular-nums">
               {partnerDone}/{partnerHabits?.length || 0} done
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap gap-1.5">
             {(partnerHabits || []).slice(0, 8).map((h) => {
               const s = partnerToday.find((l) => l.h === h)?.s
+              const cls =
+                s === 'success'
+                  ? 'bg-success/10 border-success/30 text-success'
+                  : s === 'fail'
+                    ? 'bg-danger/10 border-danger/30 text-danger'
+                    : 'bg-surface-2 border-border text-muted'
               return (
                 <div
                   key={h}
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: 6,
-                    background: s === 'success' ? '#16301a' : s === 'fail' ? '#2a1010' : '#1a1a2a',
-                    border:
-                      '1px solid ' +
-                      (s === 'success' ? '#22c55e33' : s === 'fail' ? '#ef444433' : '#2a2a3a'),
-                    fontSize: 10,
-                    color: s === 'success' ? '#22c55e' : s === 'fail' ? '#ef4444' : '#555',
-                  }}
+                  className={`px-2 py-1 rounded-md border text-[11px] font-medium ${cls}`}
                 >
-                  {getMeta(h).icon} {h.length > 16 ? h.slice(0, 16) + '…' : h}
+                  <span className="mr-1" aria-hidden>{getMeta(h).icon}</span>
+                  {h.length > 18 ? h.slice(0, 18) + '…' : h}
                 </div>
               )
             })}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Your habits today — single generic list; no anchor distinction
-          in the template. */}
-      <div className="card" style={{ padding: 12, marginBottom: 12 }}>
-        <div className="st" style={{ marginBottom: 8 }}>
-          Your Habits Today
+      {/* Habits today */}
+      <section className="rounded-lg bg-surface border border-border p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[10px] font-semibold tracking-[0.16em] uppercase text-muted">
+            Your habits today
+          </div>
+          {habits.length > 0 && (
+            <Link
+              to="/today"
+              className="text-[11px] text-muted hover:text-text inline-flex items-center gap-1"
+            >
+              Check in <ArrowRight size={12} aria-hidden />
+            </Link>
+          )}
         </div>
-        {habits.map((h) => (
-          <LogRow
-            key={h}
-            habit={h}
-            todayStatus={getTStatus(h)}
-            stats={statsMap[h]}
-            logHabit={logHabit}
-            showStats={false}
-            isAnchor={false}
-          />
-        ))}
-        {!habits.length && (
-          <div style={{ color: '#444', fontSize: 12, textAlign: 'center', padding: 16 }}>
-            No habits yet — go to Habits tab to add some.
+        {habits.length ? (
+          <div className="flex flex-col">
+            {habits.map((h) => (
+              <LogRow
+                key={h}
+                habit={h}
+                todayStatus={getTStatus(h)}
+                stats={statsMap[h]}
+                logHabit={logHabit}
+                showStats={false}
+                isAnchor={false}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center text-center py-8 px-4 gap-3">
+            <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
+              <Plus size={18} className="text-brand" aria-hidden />
+            </div>
+            <div>
+              <div className="text-sm font-medium text-text">No habits yet</div>
+              <div className="text-[12px] text-muted mt-1">
+                Add a few daily habits to start tracking your streaks.
+              </div>
+            </div>
+            <Link
+              to="/habits"
+              className="inline-flex items-center gap-1.5 mt-1 px-3 py-2 rounded-md bg-brand text-white text-xs font-semibold hover:bg-brand-strong transition-colors"
+            >
+              <Plus size={14} aria-hidden /> Add your first habit
+            </Link>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* AI Coach — disabled placeholder pending backend proxy (future epic) */}
-      <div
-        style={{
-          background: '#0d0d1a',
-          border: '1px solid #2a2a5a',
-          borderRadius: 10,
-          padding: 12,
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 1,
-            background: 'linear-gradient(90deg,transparent,#818cf8,transparent)',
-          }}
-        ></div>
-        <div
-          style={{
-            fontSize: 9,
-            fontWeight: 700,
-            letterSpacing: 1.5,
-            color: '#818cf8',
-            textTransform: 'uppercase',
-          }}
-        >
-          ◈ AI Coach — coming soon
+      {/* AI Coach — disabled placeholder */}
+      <section className="relative rounded-lg bg-surface border border-border p-4 overflow-hidden">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 shrink-0 rounded-md bg-brand/15 flex items-center justify-center">
+            <Sparkles size={16} className="text-brand" aria-hidden />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <div className="text-[10px] font-semibold tracking-[0.16em] uppercase text-brand">
+                AI Coach
+              </div>
+              <span className="text-[10px] font-medium text-muted px-1.5 py-0.5 rounded bg-surface-2 border border-border">
+                Coming soon
+              </span>
+            </div>
+            <div className="text-[12px] text-muted mt-1">
+              Personalized insights once the backend proxy is wired.
+            </div>
+          </div>
         </div>
-        <div style={{ color: '#2a2a3a', fontSize: 11, marginTop: 8 }}>
-          Personalized insights once the backend proxy is wired.
-        </div>
-      </div>
+      </section>
     </div>
   )
 }

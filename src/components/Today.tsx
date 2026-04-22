@@ -84,14 +84,25 @@ export default function Today() {
   }, [habits, setSuccess])
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold text-text">{formatDate(new Date())}</h1>
-      <p className="text-sm text-muted mt-1 tabular-nums">
-        {total === 0 ? 'No habits yet' : `${doneCount} of ${total} habits done`}
-      </p>
+    <div className="flex flex-col gap-5">
+      <header className="flex items-end justify-between gap-4">
+        <div>
+          <div className="text-[11px] font-semibold tracking-[0.18em] uppercase text-muted/80">
+            Weekday check-in
+          </div>
+          <h1 className="text-2xl font-semibold text-text mt-1">{formatDate(new Date())}</h1>
+        </div>
+        <div className="text-right shrink-0">
+          <div className="text-2xl font-semibold tabular-nums leading-none text-text">
+            {doneCount}
+            <span className="text-muted">/{total}</span>
+          </div>
+          <div className="text-[11px] text-muted mt-1 tabular-nums">{pct}% done</div>
+        </div>
+      </header>
 
-      <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur py-3 mt-2">
-        <div className="h-1 rounded-full bg-border overflow-hidden">
+      <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur py-2 -mt-1">
+        <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">
           <div
             className="h-full bg-brand transition-all"
             style={{ width: `${pct}%` }}
@@ -104,64 +115,98 @@ export default function Today() {
       </div>
 
       {total === 0 ? (
-        <div className="text-center text-muted py-16">
-          <p>No habits yet. Add some from the Habits tab to start checking in.</p>
+        <div className="rounded-xl border border-dashed border-border bg-surface/50 p-8 flex flex-col items-center text-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-brand/15 flex items-center justify-center">
+            <Plus size={20} className="text-brand" aria-hidden />
+          </div>
+          <div>
+            <div className="text-base font-semibold text-text">Nothing to check in yet</div>
+            <p className="text-sm text-muted mt-1 max-w-xs">
+              Add a few daily habits and they'll appear here as tap-to-complete tiles.
+            </p>
+          </div>
           <Link
             to="/habits"
-            className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-md bg-brand text-white text-sm font-medium hover:opacity-90"
+            className="inline-flex items-center gap-1.5 mt-2 px-3.5 py-2 rounded-md bg-brand text-white text-sm font-semibold hover:bg-brand-strong transition-colors"
           >
-            <Plus size={16} aria-hidden />
-            Add habits
+            <Plus size={16} aria-hidden /> Add your first habit
           </Link>
+          <ul
+            aria-hidden
+            className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 w-full opacity-30 pointer-events-none"
+          >
+            {Array.from({ length: 4 }).map((_, i) => (
+              <li
+                key={i}
+                className="aspect-square rounded-xl border border-dashed border-border bg-surface"
+              />
+            ))}
+          </ul>
         </div>
       ) : (
-        <ul
-          className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4"
-          aria-label="Today's habits"
-        >
-          {habits.map((h, i) => {
-            const status = statusByHabit[h]
-            const isSuccess = status === 'success'
-            const isSkip = status === 'skip'
-            const isFail = status === 'fail'
-            const tileClass = [
-              'relative aspect-square rounded-xl border p-4 flex flex-col justify-between text-left',
-              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60',
-              'transition-colors',
-              isSuccess
-                ? 'bg-brand/10 border-brand text-text'
-                : isSkip
-                  ? 'bg-surface-2 border-border text-muted'
-                  : isFail
-                    ? 'bg-surface border-danger/40 text-muted'
-                    : 'bg-surface border-border text-text hover:border-muted/40',
-            ].join(' ')
-            return (
-              <li key={h}>
-                <button
-                  type="button"
-                  onClick={() => cycle(h)}
-                  className={tileClass}
-                  aria-label={`${h}: ${status === 'none' ? 'not logged' : status}. Press to cycle.`}
-                  aria-pressed={isSuccess}
-                >
-                  <div className="flex items-start justify-between">
-                    <Icon name={resolveIconName(h)} size={22} className="text-muted" />
-                    {isSuccess && (
-                      <Check size={16} className="text-brand" aria-hidden />
-                    )}
-                    {i < 9 && !isSuccess && (
-                      <span className="text-[10px] font-medium text-muted tabular-nums">
-                        {i + 1}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-sm font-medium line-clamp-2">{h}</span>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
+        <>
+          <ul
+            className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4"
+            aria-label="Today's habits"
+          >
+            {habits.map((h, i) => {
+              const status = statusByHabit[h]
+              const isSuccess = status === 'success'
+              const isSkip = status === 'skip'
+              const isFail = status === 'fail'
+              const tileClass = [
+                'relative aspect-square rounded-xl border p-4 flex flex-col justify-between text-left w-full',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60',
+                'transition-colors',
+                isSuccess
+                  ? 'bg-brand/10 border-brand text-text'
+                  : isSkip
+                    ? 'bg-surface-2 border-border text-muted'
+                    : isFail
+                      ? 'bg-surface border-danger/40 text-muted'
+                      : 'bg-surface border-border text-text hover:border-border-strong',
+              ].join(' ')
+              return (
+                <li key={h}>
+                  <button
+                    type="button"
+                    onClick={() => cycle(h)}
+                    className={tileClass}
+                    aria-label={`${h}: ${status === 'none' ? 'not logged' : status}. Press to cycle.`}
+                    aria-pressed={isSuccess}
+                  >
+                    <div className="flex items-start justify-between">
+                      <Icon
+                        name={resolveIconName(h)}
+                        size={22}
+                        className={isSuccess ? 'text-brand' : 'text-muted'}
+                      />
+                      {isSuccess ? (
+                        <Check size={16} className="text-brand" aria-hidden />
+                      ) : i < 9 ? (
+                        <span className="text-[10px] font-semibold text-muted tabular-nums px-1.5 py-0.5 rounded bg-surface-2 border border-border">
+                          {i + 1}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="text-sm font-medium line-clamp-2">{h}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+          <div className="text-[11px] text-muted text-center mt-2">
+            Tap to cycle <span className="text-text">success → skip → fail</span> · press{' '}
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface-2 text-[10px] font-mono text-text">
+              1
+            </kbd>
+            –
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface-2 text-[10px] font-mono text-text">
+              9
+            </kbd>{' '}
+            to mark done
+          </div>
+        </>
       )}
     </div>
   )
