@@ -15,7 +15,10 @@ import Accountability from './Accountability'
 // top-level file stays a thin orchestrator.
 export default function AuthedShell() {
   return (
-    <div style={{ flex: 1, minHeight: '100vh', background: '#0a0a0f', color: '#e8e6e1' }}>
+    <div
+      className="authed-shell"
+      style={{ flex: 1, minHeight: '100vh', background: '#0a0a0f', color: '#e8e6e1' }}
+    >
       <Nav />
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 20px' }}>
         <Routes>
