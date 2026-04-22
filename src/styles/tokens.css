@@ -1,12 +1,15 @@
 /* Design tokens — dark default. Consumed by Tailwind via @theme in index.css. */
 :root {
-  --color-bg: #0a0a0f;
-  --color-surface: #13131a;
-  --color-surface-2: #1c1c26;
+  --color-bg: #07070b;
+  --color-surface: #11111a;
+  --color-surface-2: #181824;
+  --color-surface-3: #21212f;
   --color-border: #262633;
+  --color-border-strong: #353548;
   --color-text: #ededf2;
   --color-muted: #8a8a99;
-  --color-brand: #6366f1;
+  --color-brand: #818cf8;
+  --color-brand-strong: #6366f1;
   --color-success: #22c55e;
   --color-warn: #f59e0b;
   --color-danger: #ef4444;
