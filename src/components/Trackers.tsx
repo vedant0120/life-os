@@ -44,13 +44,14 @@ export default function Trackers() {
     if (!newName.trim()) return
     setBusy(true)
     try {
-      const id = await createTracker({
+      const payload: Omit<OrderedRoadmapTracker, 'id'> = {
         archetype: 'ordered_roadmap',
         name: newName.trim(),
         targetLabel: newTarget.trim() || undefined,
         order: roadmaps.length,
         months: [],
-      })
+      }
+      const id = await createTracker(payload)
       setNewName('')
       setNewTarget('')
       setCreating(false)
