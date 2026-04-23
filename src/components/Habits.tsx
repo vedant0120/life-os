@@ -1,16 +1,35 @@
 import { useMemo, useState } from 'react'
-import { calcStats, last14 } from './shared'
-import { getMeta, CATEGORIES } from '../data/constants'
+import { ArrowLeft, Plus, Star } from 'lucide-react'
+import { Card, SectionTitle, ProgressBar, MiniHeatmap } from './ui/primitives'
+import { calcStats } from './shared'
+import { CAT_COLORS, CATEGORIES } from '../data/constants'
 import { useData } from '../stores/DataContext'
 import type { HabitStats } from '../types'
 
+// ── Per-habit streak (current run of successes ending at today) ───────────────
+function currentStreak(habit: string, logs: { h: string; d: string; s: string | null }[]): number {
+  let streak = 0
+  const d = new Date()
+  // Cap at 365 to avoid infinite loop on bad data
+  for (let i = 0; i < 365; i++) {
+    const ds = d.toISOString().slice(0, 10)
+    const entry = logs.find((l) => l.h === habit && l.d === ds)
+    if (entry && entry.s === 'success') {
+      streak++
+      d.setDate(d.getDate() - 1)
+    } else {
+      break
+    }
+  }
+  return streak
+}
+
 export default function Habits() {
   const { habits, logs, addHabit } = useData()
-  const [selHabit, setSelHabit] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
   const [newName, setNewName] = useState('')
-  const [newCat, setNewCat] = useState('Career')
-  const L14 = last14()
+  const [newCat, setNewCat] = useState<string>(CATEGORIES[0] || 'Career')
 
   const statsMap = useMemo(() => {
     const m: Record<string, HabitStats> = {}
@@ -20,324 +39,301 @@ export default function Habits() {
     return m
   }, [habits, logs])
 
-  if (selHabit) {
-    const habit = selHabit
-    const meta = getMeta(habit)
+  // ── Detail view ────────────────────────────────────────────────────────
+  if (selected) {
+    const habit = selected
     const records = logs.filter((l) => l.h === habit)
     const stats = calcStats(records)
-    const months = [
-      { l: 'Mar', n: 3 },
-      { l: 'Apr', n: 4 },
-      { l: 'May', n: 5 },
-      { l: 'Jun', n: 6 },
-      { l: 'Jul', n: 7 },
-    ]
+    const streak = currentStreak(habit, logs)
+
+    // Monthly rate bars (last 6 calendar months that have data)
+    const now = new Date()
+    const months: { label: string; iso: string; success: number; total: number }[] = []
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const iso = d.toISOString().slice(0, 7)
+      const label = d.toLocaleDateString('en-US', { month: 'short' })
+      const ml = records.filter((r) => r.d.startsWith(iso))
+      const success = ml.filter((r) => r.s === 'success').length
+      const total = ml.filter((r) => r.s !== 'skip').length
+      if (total > 0) months.push({ label, iso, success, total })
+    }
+
     return (
-      <div className="fade">
+      <div className="flex flex-col gap-4">
         <button
-          className="btn"
-          onClick={() => setSelHabit(null)}
-          style={{
-            background: '#1a1a2a',
-            color: '#818cf8',
-            padding: '6px 12px',
-            marginBottom: 14,
-            fontFamily: 'inherit',
-          }}
+          type="button"
+          onClick={() => setSelected(null)}
+          className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-text self-start"
         >
-          ← Back
+          <ArrowLeft size={16} aria-hidden /> All habits
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <div
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: meta.col + '22',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 20,
-              flexShrink: 0,
-            }}
-          >
-            {meta.icon}
-          </div>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#e8e6e1' }}>{habit}</div>
-            <div style={{ display: 'flex', gap: 5, marginTop: 3 }}>
-              <span className="tag" style={{ background: meta.col + '22', color: meta.col }}>
-                {meta.cat}
-              </span>
+
+        <Card>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-11 h-11 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: 'rgba(34,197,94,0.15)' }}
+            >
+              <Star size={20} className="text-brand" strokeWidth={2.5} aria-hidden />
             </div>
-            {meta.note && (
-              <div style={{ fontSize: 9, color: '#555', marginTop: 3 }}>{meta.note}</div>
-            )}
-          </div>
-        </div>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4,1fr)',
-            gap: 8,
-            marginBottom: 12,
-          }}
-        >
-          {[
-            { l: 'Rate', v: stats.rate + '%', c: meta.col },
-            { l: 'Streak', v: stats.current + 'd', c: '#818cf8' },
-            { l: 'Best', v: stats.longest + 'd', c: '#f97316' },
-            { l: 'Total', v: stats.total, c: '#22c55e' },
-          ].map((s, i) => (
-            <div key={i} className="card" style={{ padding: 12 }}>
-              <div className="st">{s.l}</div>
-              <div style={{ fontSize: 19, fontWeight: 800, color: s.c, marginTop: 5 }}>{s.v}</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-base font-bold text-text truncate">{habit}</div>
             </div>
-          ))}
-        </div>
-        <div className="card" style={{ padding: 14, marginBottom: 10 }}>
-          <div className="st" style={{ marginBottom: 12 }}>
-            Monthly
           </div>
-          {months.map(({ l, n }) => {
-            const ml = records.filter((r) => new Date(r.d).getMonth() + 1 === n)
-            if (!ml.length) return null
-            const s = ml.filter((r) => r.s === 'success').length
-            const t = ml.filter((r) => r.s !== 'skip').length
-            const rt = t > 0 ? Math.round((s / t) * 100) : 0
-            return (
+          <div className="grid grid-cols-4 gap-2 mt-4">
+            {[
+              { l: 'Rate', v: `${stats.rate}%`, c: 'var(--color-brand)' },
+              { l: 'Streak', v: `${streak}d`, c: 'var(--color-info)' },
+              { l: 'Best', v: `${stats.longest}d`, c: 'var(--color-peach)' },
+              { l: 'Total', v: stats.total, c: 'var(--color-success)' },
+            ].map((s) => (
               <div
-                key={l}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}
+                key={s.l}
+                className="rounded-lg bg-surface-2 border border-border p-2.5 text-center"
               >
-                <div style={{ width: 22, fontSize: 10, color: '#666' }}>{l}</div>
-                <div className="bar" style={{ flex: 1 }}>
-                  <div
-                    className="fill"
-                    style={{
-                      width: rt + '%',
-                      background: rt >= 70 ? meta.col : rt >= 40 ? '#f59e0b' : '#ef4444',
-                    }}
-                  ></div>
+                <div className="text-[10px] font-bold tracking-wider uppercase text-muted">
+                  {s.l}
                 </div>
-                <div style={{ fontSize: 10, color: '#888', width: 55, textAlign: 'right' }}>
-                  {s}/{t} · {rt}%
+                <div className="text-lg font-bold font-mono mt-1" style={{ color: s.c }}>
+                  {s.v}
                 </div>
               </div>
-            )
-          })}
-        </div>
-        <div className="card" style={{ padding: 14 }}>
-          <div className="st" style={{ marginBottom: 10 }}>
-            All entries
+            ))}
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        </Card>
+
+        {months.length > 0 && (
+          <Card>
+            <SectionTitle>Monthly</SectionTitle>
+            <div className="flex flex-col gap-2">
+              {months.map((m) => {
+                const rt = m.total > 0 ? m.success / m.total : 0
+                const col =
+                  rt >= 0.7
+                    ? 'var(--color-success)'
+                    : rt >= 0.4
+                      ? 'var(--color-warn)'
+                      : 'var(--color-danger)'
+                return (
+                  <div key={m.iso} className="flex items-center gap-3">
+                    <div className="w-10 text-xs font-semibold text-muted">{m.label}</div>
+                    <div className="flex-1">
+                      <ProgressBar pct={rt} color={col} h={6} />
+                    </div>
+                    <div className="text-[11px] font-mono text-muted w-16 text-right">
+                      {m.success}/{m.total} · {Math.round(rt * 100)}%
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        )}
+
+        <Card>
+          <SectionTitle>All entries</SectionTitle>
+          <div className="flex flex-wrap gap-1">
             {[...records]
               .sort((a, b) => b.d.localeCompare(a.d))
-              .map((e, i) => (
-                <div
-                  key={i}
-                  style={{
-                    padding: '2px 7px',
-                    borderRadius: 4,
-                    background:
-                      e.s === 'success' ? '#16301a' : e.s === 'fail' ? '#2a1010' : '#2a2008',
-                    fontSize: 9,
-                    display: 'flex',
-                    gap: 4,
-                  }}
-                >
-                  <span style={{ color: '#555' }}>{e.d}</span>
-                  <span
-                    style={{
-                      color: e.s === 'success' ? '#22c55e' : e.s === 'fail' ? '#ef4444' : '#f59e0b',
-                    }}
+              .map((e, i) => {
+                const bg =
+                  e.s === 'success'
+                    ? 'bg-success/15 text-success border-success/30'
+                    : e.s === 'fail'
+                      ? 'bg-danger/15 text-danger border-danger/30'
+                      : 'bg-warn/15 text-warn border-warn/30'
+                const glyph = e.s === 'success' ? '✓' : e.s === 'fail' ? '✗' : '→'
+                return (
+                  <div
+                    key={i}
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono border ${bg}`}
                   >
-                    {e.s === 'success' ? '✓' : e.s === 'fail' ? '✗' : '→'}
-                  </span>
-                </div>
-              ))}
+                    {e.d} {glyph}
+                  </div>
+                )
+              })}
+            {!records.length && (
+              <div className="text-xs text-muted">No entries logged for this habit yet.</div>
+            )}
           </div>
-        </div>
+        </Card>
       </div>
     )
   }
 
+  // ── List view ──────────────────────────────────────────────────────────
   return (
-    <div className="fade">
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 14,
-        }}
-      >
+    <div className="flex flex-col gap-3">
+      <header className="flex items-center justify-between">
         <div>
-          <div className="st">All Habits</div>
-          <div className="pt">{habits.length} Tracked</div>
+          <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-brand">
+            Habits
+          </div>
+          <h1 className="text-[22px] font-bold text-text mt-1 font-mono">
+            {habits.length} tracked
+          </h1>
         </div>
         <button
-          className="btn"
+          type="button"
           onClick={() => setShowAdd(true)}
-          style={{
-            background: '#818cf8',
-            color: '#fff',
-            padding: '7px 14px',
-            fontFamily: 'inherit',
-          }}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand text-black text-sm font-bold hover:bg-brand-strong transition-colors"
         >
-          + Add
+          <Plus size={16} aria-hidden /> Add
         </button>
+      </header>
+
+      {/* Legend */}
+      <div className="flex items-center gap-3 text-[10px] text-muted">
+        <div className="flex items-center gap-1">
+          <div className="w-2.5 h-2.5 rounded-[2px] bg-success" /> Done
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2.5 h-2.5 rounded-[2px] bg-danger" /> Missed
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2.5 h-2.5 rounded-[2px] bg-warn" /> Skip
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2.5 h-2.5 rounded-[2px] bg-white/[0.06]" /> No data
+        </div>
       </div>
+
       {habits.map((h) => {
-        const meta = getMeta(h)
         const stats = statsMap[h]
-        const hl = logs.filter((l) => l.h === h)
+        const rate = stats?.rate || 0
+        const col =
+          rate >= 70
+            ? 'var(--color-success)'
+            : rate >= 40
+              ? 'var(--color-warn)'
+              : 'var(--color-danger)'
+        const hLogs = logs.filter((l) => l.h === h)
         return (
-          <div
+          <button
             key={h}
-            className="card"
-            style={{
-              padding: 13,
-              marginBottom: 7,
-              cursor: 'pointer',
-              borderColor: '#1e1e2e',
-            }}
-            onClick={() => setSelHabit(h)}
+            type="button"
+            onClick={() => setSelected(h)}
+            className="text-left bg-surface border border-border rounded-[14px] p-4 hover:border-border-strong transition-colors"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-              <div
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 8,
-                  background: meta.col + '22',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 16,
-                  flexShrink: 0,
-                }}
-              >
-                {meta.icon}
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-2 h-2 rounded-full bg-brand shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-[14px] font-bold text-text truncate">{h}</div>
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: '#c4c0d8',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {h}
-                  </div>
+              <div className="shrink-0 text-right">
+                <div className="text-[14px] font-bold font-mono" style={{ color: col }}>
+                  {rate}%
                 </div>
-                <div style={{ display: 'flex', gap: 3 }}>
-                  {L14.map((d, i) => {
-                    const r = hl.find((l) => l.d === d)
+                <div className="text-[10px] text-muted">
+                  🔥 {stats?.current || 0}d
+                </div>
+              </div>
+            </div>
+            <MiniHeatmap logs={hLogs} days={90} />
+            <div className="flex items-center justify-between mt-2 text-[11px] text-muted">
+              <span>
+                {stats?.total || 0} entries · {stats?.longest || 0}d best
+              </span>
+            </div>
+          </button>
+        )
+      })}
+
+      {!habits.length && (
+        <Card className="flex flex-col items-center text-center gap-3 py-12">
+          <div className="w-12 h-12 rounded-full bg-brand/15 flex items-center justify-center">
+            <Plus size={20} className="text-brand" aria-hidden />
+          </div>
+          <div>
+            <div className="text-sm font-bold text-text">No habits yet</div>
+            <div className="text-xs text-muted mt-1">
+              Add your first habit to start tracking streaks.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand text-black text-xs font-bold"
+          >
+            <Plus size={14} aria-hidden /> Add your first habit
+          </button>
+        </Card>
+      )}
+
+      {/* Add modal */}
+      {showAdd && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowAdd(false)}
+        >
+          <div
+            className="bg-surface border border-border rounded-[14px] p-5 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-sm font-bold text-text mb-4">Add new habit</div>
+            <div className="flex flex-col gap-3">
+              <div>
+                <div className="text-[10px] font-bold tracking-wider uppercase text-muted mb-1">
+                  Habit name
+                </div>
+                <input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="e.g. System design study"
+                  autoFocus
+                  className="w-full bg-bg border border-border rounded-lg px-3 py-2 text-sm text-text outline-none focus:border-brand"
+                />
+              </div>
+              <div>
+                <div className="text-[10px] font-bold tracking-wider uppercase text-muted mb-1">
+                  Category
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {CATEGORIES.map((c) => {
+                    const active = newCat === c
+                    const col = CAT_COLORS[c] || '#94a3b8'
                     return (
-                      <div
-                        key={i}
-                        className="hcell"
-                        title={d}
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setNewCat(c)}
+                        className="px-2.5 py-1 rounded-md text-[11px] font-semibold border transition-colors"
                         style={{
-                          background: !r
-                            ? '#1a1a2a'
-                            : r.s === 'success'
-                              ? meta.col
-                              : r.s === 'fail'
-                                ? '#ef4444'
-                                : '#f59e0b',
-                          opacity: !r ? 0.2 : 1,
+                          background: active ? col + '22' : 'transparent',
+                          borderColor: active ? col + '55' : 'var(--color-border)',
+                          color: active ? col : 'var(--color-muted)',
                         }}
-                      ></div>
+                      >
+                        {c}
+                      </button>
                     )
                   })}
                 </div>
               </div>
-              <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div
-                  style={{
-                    fontSize: 16,
-                    fontWeight: 800,
-                    color:
-                      stats?.rate >= 70 ? '#22c55e' : stats?.rate >= 40 ? '#f59e0b' : '#ef4444',
-                  }}
+              <div className="flex gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAdd(false)}
+                  className="flex-1 px-3 py-2 rounded-lg bg-surface-2 border border-border text-sm text-muted hover:text-text transition-colors"
                 >
-                  {stats?.rate || 0}%
-                </div>
-                <div style={{ fontSize: 9, color: '#444' }}>🔥{stats?.current || 0}d</div>
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!newName.trim()}
+                  onClick={() => {
+                    if (!newName.trim()) return
+                    const col = CAT_COLORS[newCat] || '#94a3b8'
+                    void addHabit(newName.trim(), newCat, col, '⭐')
+                    setNewName('')
+                    setShowAdd(false)
+                  }}
+                  className="flex-1 px-3 py-2 rounded-lg bg-brand text-black text-sm font-bold hover:bg-brand-strong disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Add habit
+                </button>
               </div>
-            </div>
-          </div>
-        )
-      })}
-      {!habits.length && (
-        <div style={{ textAlign: 'center', padding: 40, color: '#444' }}>
-          <div style={{ fontSize: 24, marginBottom: 8 }}>📋</div>
-          <div style={{ fontSize: 12 }}>No habits yet. Add your first habit above.</div>
-        </div>
-      )}
-
-      {showAdd && (
-        <div className="overlay" onClick={() => setShowAdd(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 14 }}>Add New Habit</div>
-            <div style={{ marginBottom: 10 }}>
-              <div className="st" style={{ marginBottom: 4 }}>
-                Habit Name
-              </div>
-              <input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="e.g. System Design study"
-              />
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <div className="st" style={{ marginBottom: 4 }}>
-                Category
-              </div>
-              <select value={newCat} onChange={(e) => setNewCat(e.target.value)}>
-                {CATEGORIES.map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                className="btn"
-                onClick={() => setShowAdd(false)}
-                style={{
-                  flex: 1,
-                  background: '#1a1a2a',
-                  color: '#888',
-                  padding: 9,
-                  fontFamily: 'inherit',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn"
-                onClick={() => {
-                  addHabit(newName, newCat, '#818cf8', '⭐')
-                  setNewName('')
-                  setShowAdd(false)
-                }}
-                style={{
-                  flex: 1,
-                  background: '#818cf8',
-                  color: '#fff',
-                  padding: 9,
-                  fontFamily: 'inherit',
-                }}
-              >
-                Add
-              </button>
             </div>
           </div>
         </div>

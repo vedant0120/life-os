@@ -1,18 +1,12 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Plus } from 'lucide-react'
-import Icon from './ui/Icon'
+import { Check, Plus, SkipForward, X } from 'lucide-react'
+import { Card, Ring } from './ui/primitives'
 import { todayStr } from './shared'
-import { getMeta } from '../data/constants'
 import { useData } from '../stores/DataContext'
 import type { Status } from '../types'
 
-// P3.1 — Today tab. Tailwind-only, lucide icons only, ≤200 LOC.
-// Tile cycles: none → success → skip → fail → none.
-// Digit keys 1–9 toggle the Nth tile to `success`.
-// Optimistic UI: logHabit() already updates local state synchronously via
-// the DataContext reducer before the Firestore write resolves.
-
+// Tile cycles: none → success → skip → fail → none
 const CYCLE: Record<string, Exclude<Status, null> | null> = {
   none: 'success',
   success: 'skip',
@@ -24,12 +18,7 @@ function formatDate(d: Date): string {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
-function resolveIconName(habit: string): string {
-  const raw = getMeta(habit).icon
-  // Icon registry accepts kebab-case lucide names only. Anything else
-  // (emoji defaults, legacy) falls back to `circle-dashed` inside <Icon>.
-  return /^[a-z0-9-]+$/.test(raw) ? raw : 'circle-dashed'
-}
+type Btn = 'success' | 'fail' | 'skip'
 
 export default function Today() {
   const { habits, logs, logHabit } = useData()
@@ -46,29 +35,25 @@ export default function Today() {
 
   const doneCount = habits.filter((h) => statusByHabit[h] === 'success').length
   const total = habits.length
-  const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0
+  const pct = total > 0 ? doneCount / total : 0
 
   const cycle = useCallback(
     (habit: string) => {
       const next = CYCLE[statusByHabit[habit] ?? 'none']
-      if (next === null) {
-        // TODO: DataContext has no `clearLog` — cycling "fail → none" currently
-        // no-ops until we add it. Users can still tap again to advance.
-        return
-      }
+      if (next === null) return
       void logHabit(habit, next)
     },
     [statusByHabit, logHabit]
   )
 
-  const setSuccess = useCallback(
-    (habit: string) => {
-      if (statusByHabit[habit] !== 'success') void logHabit(habit, 'success')
+  const setStatus = useCallback(
+    (habit: string, s: Btn) => {
+      if (statusByHabit[habit] !== s) void logHabit(habit, s)
     },
     [statusByHabit, logHabit]
   )
 
-  // Digit keys 1–9 → Nth tile to success.
+  // Digit keys 1–9 → Nth tile to success
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return
@@ -77,136 +62,125 @@ export default function Today() {
       const n = parseInt(e.key, 10)
       if (!Number.isFinite(n) || n < 1 || n > 9) return
       const habit = habits[n - 1]
-      if (habit) setSuccess(habit)
+      if (habit && statusByHabit[habit] !== 'success') void logHabit(habit, 'success')
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [habits, setSuccess])
+  }, [habits, statusByHabit, logHabit])
 
   return (
-    <div className="flex flex-col gap-5">
-      <header className="flex items-end justify-between gap-4">
-        <div>
-          <div className="text-[11px] font-semibold tracking-[0.18em] uppercase text-muted/80">
-            Weekday check-in
+    <div className="flex flex-col gap-3">
+      {/* Hero */}
+      <Card className="flex items-center gap-4" style={{ padding: 16 }}>
+        <Ring pct={pct} size={64} color="var(--color-success)" />
+        <div className="flex-1 min-w-0">
+          <div className="text-xl font-bold text-text font-mono">
+            {doneCount}/{total} complete
           </div>
-          <h1 className="text-2xl font-semibold text-text mt-1">{formatDate(new Date())}</h1>
+          <div className="text-[13px] text-muted">{formatDate(new Date())}</div>
         </div>
-        <div className="text-right shrink-0">
-          <div className="text-2xl font-semibold tabular-nums leading-none text-text">
-            {doneCount}
-            <span className="text-muted">/{total}</span>
-          </div>
-          <div className="text-[11px] text-muted mt-1 tabular-nums">{pct}% done</div>
-        </div>
-      </header>
+      </Card>
 
-      <div className="sticky top-0 z-10 bg-bg/80 backdrop-blur py-2 -mt-1">
-        <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">
-          <div
-            className="h-full bg-brand transition-all"
-            style={{ width: `${pct}%` }}
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={pct}
-          />
-        </div>
-      </div>
-
-      {total === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-surface/50 p-8 flex flex-col items-center text-center gap-3">
+      {total === 0 && (
+        <Card className="flex flex-col items-center text-center gap-3 py-10">
           <div className="w-12 h-12 rounded-full bg-brand/15 flex items-center justify-center">
             <Plus size={20} className="text-brand" aria-hidden />
           </div>
           <div>
-            <div className="text-base font-semibold text-text">Nothing to check in yet</div>
+            <div className="text-base font-bold text-text">Nothing to check in yet</div>
             <p className="text-sm text-muted mt-1 max-w-xs">
-              Add a few daily habits and they'll appear here as tap-to-complete tiles.
+              Add daily habits from the Habits tab and they'll appear here.
             </p>
           </div>
           <Link
             to="/habits"
-            className="inline-flex items-center gap-1.5 mt-2 px-3.5 py-2 rounded-md bg-brand text-white text-sm font-semibold hover:bg-brand-strong transition-colors"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-brand text-black text-sm font-bold hover:bg-brand-strong transition-colors"
           >
             <Plus size={16} aria-hidden /> Add your first habit
           </Link>
-          <ul
-            aria-hidden
-            className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 w-full opacity-30 pointer-events-none"
+        </Card>
+      )}
+
+      {habits.map((h, i) => {
+        const status = statusByHabit[h]
+        const isSuccess = status === 'success'
+        const accentColor =
+          status === 'success'
+            ? 'var(--color-success)'
+            : status === 'fail'
+              ? 'var(--color-danger)'
+              : status === 'skip'
+                ? 'var(--color-warn)'
+                : 'var(--color-border-strong)'
+        return (
+          <Card
+            key={h}
+            style={{
+              padding: '12px 14px',
+              borderLeft: `3px solid ${accentColor}`,
+              boxShadow: isSuccess ? `inset 0 0 20px rgba(34, 197, 94, 0.06)` : 'none',
+            }}
           >
-            {Array.from({ length: 4 }).map((_, i) => (
-              <li
-                key={i}
-                className="aspect-square rounded-xl border border-dashed border-border bg-surface"
-              />
-            ))}
-          </ul>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => cycle(h)}
+                className="flex-1 text-left min-w-0 focus-visible:outline-none"
+                aria-label={`${h}: ${status === 'none' ? 'not logged' : status}. Press to cycle.`}
+              >
+                <div className="text-[14px] font-semibold text-text truncate">{h}</div>
+                <div className="flex gap-1.5 mt-1 items-center">
+                  {i < 9 && (
+                    <span className="text-[9px] font-mono text-muted px-1.5 py-0.5 rounded border border-border">
+                      {i + 1}
+                    </span>
+                  )}
+                </div>
+              </button>
+              <div className="flex gap-1.5 items-center shrink-0">
+                {(['success', 'fail', 'skip'] as const).map((s) => {
+                  const active = status === s
+                  const col =
+                    s === 'success'
+                      ? 'var(--color-success)'
+                      : s === 'fail'
+                        ? 'var(--color-danger)'
+                        : 'var(--color-warn)'
+                  const Icon = s === 'success' ? Check : s === 'fail' ? X : SkipForward
+                  return (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setStatus(h, s)}
+                      aria-pressed={active}
+                      className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+                      style={{
+                        background: active ? col + '33' : 'rgba(255,255,255,0.04)',
+                        color: active ? col : 'var(--color-muted)',
+                      }}
+                    >
+                      <Icon size={14} strokeWidth={2.5} aria-hidden />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          </Card>
+        )
+      })}
+
+      {total > 0 && (
+        <div className="text-[11px] text-muted text-center mt-1">
+          Tap a row title to cycle · press{' '}
+          <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface-2 text-[10px] font-mono text-text">
+            1
+          </kbd>
+          –
+          <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface-2 text-[10px] font-mono text-text">
+            9
+          </kbd>{' '}
+          to mark done
         </div>
-      ) : (
-        <>
-          <ul
-            className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4"
-            aria-label="Today's habits"
-          >
-            {habits.map((h, i) => {
-              const status = statusByHabit[h]
-              const isSuccess = status === 'success'
-              const isSkip = status === 'skip'
-              const isFail = status === 'fail'
-              const tileClass = [
-                'relative aspect-square rounded-xl border p-4 flex flex-col justify-between text-left w-full',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60',
-                'transition-colors',
-                isSuccess
-                  ? 'bg-brand/10 border-brand text-text'
-                  : isSkip
-                    ? 'bg-surface-2 border-border text-muted'
-                    : isFail
-                      ? 'bg-surface border-danger/40 text-muted'
-                      : 'bg-surface border-border text-text hover:border-border-strong',
-              ].join(' ')
-              return (
-                <li key={h}>
-                  <button
-                    type="button"
-                    onClick={() => cycle(h)}
-                    className={tileClass}
-                    aria-label={`${h}: ${status === 'none' ? 'not logged' : status}. Press to cycle.`}
-                    aria-pressed={isSuccess}
-                  >
-                    <div className="flex items-start justify-between">
-                      <Icon
-                        name={resolveIconName(h)}
-                        size={22}
-                        className={isSuccess ? 'text-brand' : 'text-muted'}
-                      />
-                      {isSuccess ? (
-                        <Check size={16} className="text-brand" aria-hidden />
-                      ) : i < 9 ? (
-                        <span className="text-[10px] font-semibold text-muted tabular-nums px-1.5 py-0.5 rounded bg-surface-2 border border-border">
-                          {i + 1}
-                        </span>
-                      ) : null}
-                    </div>
-                    <span className="text-sm font-medium line-clamp-2">{h}</span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-          <div className="text-[11px] text-muted text-center mt-2">
-            Tap to cycle <span className="text-text">success → skip → fail</span> · press{' '}
-            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface-2 text-[10px] font-mono text-text">
-              1
-            </kbd>
-            –
-            <kbd className="px-1.5 py-0.5 rounded border border-border bg-surface-2 text-[10px] font-mono text-text">
-              9
-            </kbd>{' '}
-            to mark done
-          </div>
-        </>
       )}
     </div>
   )

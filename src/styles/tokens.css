@@ -1,18 +1,24 @@
-/* Design tokens — dark default. Consumed by Tailwind via @theme in index.css. */
+/* Design tokens — dark default, tuned to the P4 visual system.
+   Consumed by Tailwind via @theme in index.css. */
 :root {
-  --color-bg: #07070b;
-  --color-surface: #11111a;
-  --color-surface-2: #181824;
-  --color-surface-3: #21212f;
-  --color-border: #262633;
-  --color-border-strong: #353548;
-  --color-text: #ededf2;
-  --color-muted: #8a8a99;
-  --color-brand: #818cf8;
-  --color-brand-strong: #6366f1;
+  --color-bg: #0c0f1a;
+  --color-surface: #131627;
+  --color-surface-2: #1a1e35;
+  --color-surface-3: #1e2240;
+  --color-border: #1f2238;
+  --color-border-strong: #2a2e4a;
+  --color-text: #e2e8f0;
+  --color-muted: #64748b;
+  --color-brand: #22c55e;
+  --color-brand-strong: #16a34a;
   --color-success: #22c55e;
-  --color-warn: #f59e0b;
+  --color-warn: #facc15;
   --color-danger: #ef4444;
+  --color-info: #3b82f6;
+  --color-plum: #a855f7;
+  --color-peach: #f97316;
+  --color-teal: #14b8a6;
+  --color-rose: #ec4899;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
