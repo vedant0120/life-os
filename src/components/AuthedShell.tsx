@@ -35,7 +35,7 @@ export default function AuthedShell() {
     <div className="flex min-h-screen bg-bg text-text font-sans">
       <Sidebar />
       <main className="flex-1 min-w-0 flex flex-col pb-14 lg:pb-0">
-        <div className="mx-auto w-full max-w-4xl xl:max-w-6xl 2xl:max-w-7xl px-5 md:px-8 xl:px-10 py-6 md:py-8">
+        <div className="w-full px-5 md:px-8 xl:px-10 2xl:px-14 py-6 md:py-8">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/today" element={<Today />} />
