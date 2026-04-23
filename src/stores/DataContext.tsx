@@ -7,6 +7,7 @@ import type {
   FitnessLog,
   Habit,
   HabitLog,
+  JournalPost,
   OnboardingPayload,
   Profile,
   Reaction,
@@ -29,6 +30,7 @@ export interface DataState {
   partnerHabits: Habit[]
   partnerLogs: HabitLog[]
   reactions: Reaction[]
+  journal: JournalPost[]
   loading: boolean
   needsOnboarding: boolean
 }
@@ -50,6 +52,7 @@ type DataAction =
   | { type: 'UPSERT_PARTNER_LOG'; log: HabitLog }
   | { type: 'SET_REACTIONS'; reactions: Reaction[] }
   | { type: 'PUSH_REACTION'; reaction: Reaction }
+  | { type: 'SET_JOURNAL'; journal: JournalPost[] }
   | { type: 'SET_LOADING'; loading: boolean }
   | { type: 'SET_NEEDS_ONBOARDING'; value: boolean }
   | { type: 'RESET' }
@@ -64,6 +67,7 @@ const initialState: DataState = {
   partnerHabits: [],
   partnerLogs: [],
   reactions: [],
+  journal: [],
   loading: true,
   needsOnboarding: false,
 }
@@ -106,6 +110,8 @@ function reducer(state: DataState, action: DataAction): DataState {
       return { ...state, reactions: action.reactions }
     case 'PUSH_REACTION':
       return { ...state, reactions: [action.reaction, ...state.reactions] }
+    case 'SET_JOURNAL':
+      return { ...state, journal: action.journal }
     case 'SET_LOADING':
       return { ...state, loading: action.loading }
     case 'SET_NEEDS_ONBOARDING':
@@ -126,6 +132,14 @@ interface DataContextValue extends DataState {
   linkPartner: (partnerEmail: string) => Promise<{ error?: string; success?: boolean }>
   completeOnboarding: (data: OnboardingPayload) => Promise<void>
   markReactionRead: (reactionId: string) => Promise<void>
+  addJournalPost: (
+    post: Omit<JournalPost, 'id' | 'createdAt'>
+  ) => Promise<string | undefined>
+  updateJournalPost: (
+    id: string,
+    patch: Partial<Omit<JournalPost, 'id' | 'createdAt'>>
+  ) => Promise<void>
+  deleteJournalPost: (id: string) => Promise<void>
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -194,6 +208,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const unsubR = db.subscribeReactions(session.userId, (reactions) => {
       dispatch({ type: 'SET_REACTIONS', reactions })
     })
+    const unsubJ = db.subscribeJournalPosts(session.userId, (journal) => {
+      dispatch({ type: 'SET_JOURNAL', journal })
+    })
     const unsubP = state.partner
       ? db.subscribePartnerLogs(state.partner.id, (logs) => {
           dispatch({ type: 'SET_PARTNER_LOGS', logs })
@@ -201,6 +218,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       : null
     return () => {
       unsubR()
+      unsubJ()
       if (unsubP) unsubP()
     }
   }, [session, state.partner])
@@ -297,6 +315,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await db.markReactionRead(reactionId)
   }, [])
 
+  const addJournalPost = useCallback(
+    async (post: Omit<JournalPost, 'id' | 'createdAt'>) => {
+      if (!session) return undefined
+      const id = await db.addJournalPost(session.userId, post)
+      // The realtime subscription will refresh the list; we return the id
+      // in case the caller wants to navigate to it.
+      return id
+    },
+    [session]
+  )
+
+  const updateJournalPost = useCallback(
+    async (id: string, patch: Partial<Omit<JournalPost, 'id' | 'createdAt'>>) => {
+      if (!session) return
+      await db.updateJournalPost(session.userId, id, patch)
+    },
+    [session]
+  )
+
+  const deleteJournalPost = useCallback(
+    async (id: string) => {
+      if (!session) return
+      await db.deleteJournalPost(session.userId, id)
+    },
+    [session]
+  )
+
   return (
     <DataContext.Provider
       value={{
@@ -310,6 +355,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         linkPartner,
         completeOnboarding,
         markReactionRead,
+        addJournalPost,
+        updateJournalPost,
+        deleteJournalPost,
       }}
     >
       {children}

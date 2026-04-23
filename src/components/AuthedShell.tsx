@@ -13,6 +13,7 @@ import Health from './Health'
 import Schedule from './Schedule'
 import Analytics from './Analytics'
 import Accountability from './Accountability'
+import Journal from './Journal'
 
 // Authenticated shell: persistent sidebar on lg+, bottom tabs on <lg,
 // plus the ⌘K command palette. Self-managed responsive breakpoints live
@@ -47,6 +48,7 @@ export default function AuthedShell() {
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/accountability" element={<Accountability />} />
             <Route path="/analytics" element={<Analytics />} />
+            <Route path="/journal" element={<Journal />} />
             <Route path="/auth" element={<Navigate to="/" replace />} />
             <Route path="/onboarding" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Navigate to="/" replace />} />

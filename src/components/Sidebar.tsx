@@ -12,6 +12,7 @@ import {
   Users,
   Download,
   LogOut,
+  BookText,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '../stores/AuthContext'
@@ -42,6 +43,7 @@ const GROUPS: readonly NavGroup[] = [
     items: [
       { label: 'Habits', to: '/habits', Icon: CheckSquare },
       { label: 'Trackers', to: '/trackers', Icon: BarChart3 },
+      { label: 'Journal', to: '/journal', Icon: BookText },
       { label: 'Schedule', to: '/schedule', Icon: Calendar },
     ],
   },

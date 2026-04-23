@@ -5,6 +5,7 @@ import type {
   DSAProgress,
   FitnessLog,
   HabitLog,
+  JournalPost,
   NumericEntry,
   OnboardingPayload,
   Profile,
@@ -100,4 +101,17 @@ export interface DataClient {
     topicId: string,
     done: boolean
   ): Promise<void>
+
+  // ── Journal (P4 top-level tab) ────────────────────────────────────────────
+  subscribeJournalPosts(userId: string, cb: (posts: JournalPost[]) => void): Unsubscribe
+  addJournalPost(
+    userId: string,
+    post: Omit<JournalPost, 'id' | 'createdAt'>
+  ): Promise<string>
+  updateJournalPost(
+    userId: string,
+    id: string,
+    patch: Partial<Omit<JournalPost, 'id' | 'createdAt'>>
+  ): Promise<void>
+  deleteJournalPost(userId: string, id: string): Promise<void>
 }

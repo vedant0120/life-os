@@ -14,6 +14,7 @@ import {
   Users,
   Download,
   LogOut,
+  BookText,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '../stores/AuthContext'
@@ -36,6 +37,7 @@ const PRIMARY: readonly TabItem[] = [
 
 const MORE: readonly TabItem[] = [
   { label: 'Dashboard', to: '/', Icon: Home, end: true },
+  { label: 'Journal', to: '/journal', Icon: BookText },
   { label: 'Finance', to: '/finance', Icon: Wallet },
   { label: 'Diet', to: '/diet', Icon: Utensils },
   { label: 'Health', to: '/health', Icon: Heart },

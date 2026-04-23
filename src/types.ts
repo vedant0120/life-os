@@ -197,3 +197,17 @@ export type Tracker =
   | NumericLogTracker
   | ChecklistTracker
   | FreeformJournalTracker
+
+// ─── Journal (P4 top-level tab) ──────────────────────────────────────────────
+// Distinct from the tracker-scoped `JournalEntry` above: this is the app-wide
+// journal surfaced as its own tab. Lives in users/{uid}/journal_posts.
+export type JournalPostType = 'daily' | 'weekly' | 'monthly'
+
+export interface JournalPost {
+  id: string
+  type: JournalPostType
+  date: string // YYYY-MM-DD
+  title: string
+  content: string
+  createdAt?: unknown
+}

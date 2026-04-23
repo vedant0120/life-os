@@ -42,6 +42,7 @@ import type {
   DSAProgress,
   FitnessLog,
   HabitLog,
+  JournalPost,
   Profile,
   Reaction,
   RoadmapMonth,
@@ -482,5 +483,37 @@ export const firebaseClient: DataClient = {
         : m
     )
     await updateDoc(ref, { months, updatedAt: serverTimestamp() })
+  },
+
+  // ── Journal (top-level) ───────────────────────────────────────────────────
+  // users/{uid}/journal_posts/{id} — {type, date, title, content, createdAt}.
+  // Kept separate from tracker-scoped journal entries (which live under a
+  // specific tracker's `entries` subcollection).
+  subscribeJournalPosts(userId, cb): Unsubscribe {
+    const q = query(
+      collection(getFirestoreDb(), 'users', userId, 'journal_posts'),
+      orderBy('date', 'desc'),
+      limit(200)
+    )
+    return onSnapshot(q, (snap) => {
+      cb(
+        snap.docs.map(
+          (d) => ({ id: d.id, ...(d.data() as Omit<JournalPost, 'id'>) }) as JournalPost
+        )
+      )
+    })
+  },
+  async addJournalPost(userId, post) {
+    const ref = await addDoc(
+      collection(getFirestoreDb(), 'users', userId, 'journal_posts'),
+      { ...post, createdAt: serverTimestamp() }
+    )
+    return ref.id
+  },
+  async updateJournalPost(userId, id, patch) {
+    await updateDoc(doc(getFirestoreDb(), 'users', userId, 'journal_posts', id), patch)
+  },
+  async deleteJournalPost(userId, id) {
+    await deleteDoc(doc(getFirestoreDb(), 'users', userId, 'journal_posts', id))
   },
 }

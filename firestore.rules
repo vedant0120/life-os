@@ -57,6 +57,9 @@ service cloud.firestore {
       match /goal_progress/{doc} {
         allow read, write: if isOwner(uid);
       }
+      match /journal_posts/{doc} {
+        allow read, write: if isOwner(uid);
+      }
     }
 
     match /accountability_reactions/{id} {
