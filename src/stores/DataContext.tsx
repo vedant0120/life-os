@@ -20,6 +20,7 @@ import type {
   ScheduleState,
   StartupProgress,
   Status,
+  Tracker,
 } from '../types'
 
 function todayStr(): string {
@@ -43,6 +44,7 @@ export interface DataState {
   diet: DietState
   healthItems: HealthItem[]
   schedule: ScheduleState
+  trackers: Tracker[]
   loading: boolean
   needsOnboarding: boolean
 }
@@ -70,6 +72,7 @@ type DataAction =
   | { type: 'SET_DIET'; diet: DietState }
   | { type: 'SET_HEALTH_ITEMS'; items: HealthItem[] }
   | { type: 'SET_SCHEDULE'; schedule: ScheduleState }
+  | { type: 'SET_TRACKERS'; trackers: Tracker[] }
   | { type: 'SET_LOADING'; loading: boolean }
   | { type: 'SET_NEEDS_ONBOARDING'; value: boolean }
   | { type: 'RESET' }
@@ -90,6 +93,7 @@ const initialState: DataState = {
   diet: { meals: [], notes: [] },
   healthItems: [],
   schedule: { items: [] },
+  trackers: [],
   loading: true,
   needsOnboarding: false,
 }
@@ -144,6 +148,8 @@ function reducer(state: DataState, action: DataAction): DataState {
       return { ...state, healthItems: action.items }
     case 'SET_SCHEDULE':
       return { ...state, schedule: action.schedule }
+    case 'SET_TRACKERS':
+      return { ...state, trackers: action.trackers }
     case 'SET_LOADING':
       return { ...state, loading: action.loading }
     case 'SET_NEEDS_ONBOARDING':
@@ -187,6 +193,15 @@ interface DataContextValue extends DataState {
   ) => Promise<void>
   deleteHealthItem: (id: string) => Promise<void>
   updateSchedule: (items: ScheduleItem[]) => Promise<void>
+  createTracker: (tracker: Omit<Tracker, 'id'>) => Promise<string | undefined>
+  updateTracker: (id: string, patch: Partial<Tracker>) => Promise<void>
+  deleteTracker: (id: string) => Promise<void>
+  toggleRoadmapTopic: (
+    trackerId: string,
+    monthIndex: number,
+    topicId: string,
+    done: boolean
+  ) => Promise<void>
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -276,6 +291,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const unsubS = db.subscribeScheduleState(session.userId, (schedule) => {
       dispatch({ type: 'SET_SCHEDULE', schedule: schedule ?? { items: [] } })
     })
+    const unsubTr = db.subscribeTrackers(session.userId, (trackers) => {
+      dispatch({ type: 'SET_TRACKERS', trackers })
+    })
     const unsubP = state.partner
       ? db.subscribePartnerLogs(state.partner.id, (logs) => {
           dispatch({ type: 'SET_PARTNER_LOGS', logs })
@@ -289,6 +307,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       unsubD()
       unsubH()
       unsubS()
+      unsubTr()
       if (unsubP) unsubP()
     }
   }, [session, state.partner])
@@ -489,6 +508,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [session]
   )
 
+  const createTracker = useCallback(
+    async (tracker: Omit<Tracker, 'id'>) => {
+      if (!session) return undefined
+      return await db.createTracker(session.userId, tracker)
+    },
+    [session]
+  )
+
+  const updateTracker = useCallback(
+    async (id: string, patch: Partial<Tracker>) => {
+      if (!session) return
+      await db.updateTracker(session.userId, id, patch)
+    },
+    [session]
+  )
+
+  const deleteTracker = useCallback(
+    async (id: string) => {
+      if (!session) return
+      await db.deleteTracker(session.userId, id)
+    },
+    [session]
+  )
+
+  const toggleRoadmapTopic = useCallback(
+    async (trackerId: string, monthIndex: number, topicId: string, done: boolean) => {
+      if (!session) return
+      await db.toggleRoadmapTopic(session.userId, trackerId, monthIndex, topicId, done)
+    },
+    [session]
+  )
+
   return (
     <DataContext.Provider
       value={{
@@ -513,6 +564,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateHealthItem,
         deleteHealthItem,
         updateSchedule,
+        createTracker,
+        updateTracker,
+        deleteTracker,
+        toggleRoadmapTopic,
       }}
     >
       {children}
