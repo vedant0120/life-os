@@ -40,14 +40,17 @@ import { getFirebaseAuth, getFirestoreDb } from '../firebase'
 import type {
   ChecklistItem,
   DSAProgress,
+  DietState,
   FinanceSettings,
   FinanceTransaction,
   FitnessLog,
   HabitLog,
+  HealthItem,
   JournalPost,
   Profile,
   Reaction,
   RoadmapMonth,
+  ScheduleState,
   StartupProgress,
   Status,
   Tracker,
@@ -562,6 +565,76 @@ export const firebaseClient: DataClient = {
     // Merge so budgets map is spread-patched and other future fields survive.
     await setDoc(
       doc(getFirestoreDb(), 'users', userId, 'settings', 'finance'),
+      patch,
+      { merge: true }
+    )
+  },
+
+  // ── Diet ──────────────────────────────────────────────────────────────────
+  // Single settings doc users/{uid}/settings/diet — meals + notes arrays.
+  subscribeDietState(userId, cb): Unsubscribe {
+    return onSnapshot(
+      doc(getFirestoreDb(), 'users', userId, 'settings', 'diet'),
+      (snap) => {
+        cb(snap.exists() ? (snap.data() as DietState) : null)
+      }
+    )
+  },
+  async updateDietState(userId, patch) {
+    await setDoc(
+      doc(getFirestoreDb(), 'users', userId, 'settings', 'diet'),
+      patch,
+      { merge: true }
+    )
+  },
+
+  // ── Health items ──────────────────────────────────────────────────────────
+  // Each tracked health concern lives as its own doc so we can later attach
+  // a history sub-collection without a parent rewrite.
+  subscribeHealthItems(userId, cb): Unsubscribe {
+    const q = query(
+      collection(getFirestoreDb(), 'users', userId, 'health_items'),
+      orderBy('createdAt', 'desc'),
+      limit(100)
+    )
+    return onSnapshot(q, (snap) => {
+      cb(
+        snap.docs.map(
+          (d) => ({ id: d.id, ...(d.data() as Omit<HealthItem, 'id'>) }) as HealthItem
+        )
+      )
+    })
+  },
+  async addHealthItem(userId, item) {
+    const ref = await addDoc(
+      collection(getFirestoreDb(), 'users', userId, 'health_items'),
+      { ...item, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }
+    )
+    return ref.id
+  },
+  async updateHealthItem(userId, id, patch) {
+    await updateDoc(doc(getFirestoreDb(), 'users', userId, 'health_items', id), {
+      ...patch,
+      updatedAt: serverTimestamp(),
+    })
+  },
+  async deleteHealthItem(userId, id) {
+    await deleteDoc(doc(getFirestoreDb(), 'users', userId, 'health_items', id))
+  },
+
+  // ── Schedule ──────────────────────────────────────────────────────────────
+  // Single doc users/{uid}/settings/schedule with ordered items array.
+  subscribeScheduleState(userId, cb): Unsubscribe {
+    return onSnapshot(
+      doc(getFirestoreDb(), 'users', userId, 'settings', 'schedule'),
+      (snap) => {
+        cb(snap.exists() ? (snap.data() as ScheduleState) : null)
+      }
+    )
+  },
+  async updateScheduleState(userId, patch) {
+    await setDoc(
+      doc(getFirestoreDb(), 'users', userId, 'settings', 'schedule'),
       patch,
       { merge: true }
     )

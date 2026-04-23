@@ -66,6 +66,9 @@ service cloud.firestore {
       match /settings/{doc} {
         allow read, write: if isOwner(uid);
       }
+      match /health_items/{doc} {
+        allow read, write: if isOwner(uid);
+      }
     }
 
     match /accountability_reactions/{id} {

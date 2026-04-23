@@ -4,15 +4,20 @@ import { db } from '../lib/db'
 import { useAuth } from './AuthContext'
 import type {
   DSAProgress,
+  DietState,
   FinanceSettings,
   FinanceTransaction,
   FitnessLog,
   Habit,
   HabitLog,
+  HealthItem,
+  HealthStatus,
   JournalPost,
   OnboardingPayload,
   Profile,
   Reaction,
+  ScheduleItem,
+  ScheduleState,
   StartupProgress,
   Status,
 } from '../types'
@@ -35,6 +40,9 @@ export interface DataState {
   journal: JournalPost[]
   transactions: FinanceTransaction[]
   financeSettings: FinanceSettings
+  diet: DietState
+  healthItems: HealthItem[]
+  schedule: ScheduleState
   loading: boolean
   needsOnboarding: boolean
 }
@@ -59,6 +67,9 @@ type DataAction =
   | { type: 'SET_JOURNAL'; journal: JournalPost[] }
   | { type: 'SET_TRANSACTIONS'; transactions: FinanceTransaction[] }
   | { type: 'SET_FINANCE_SETTINGS'; settings: FinanceSettings }
+  | { type: 'SET_DIET'; diet: DietState }
+  | { type: 'SET_HEALTH_ITEMS'; items: HealthItem[] }
+  | { type: 'SET_SCHEDULE'; schedule: ScheduleState }
   | { type: 'SET_LOADING'; loading: boolean }
   | { type: 'SET_NEEDS_ONBOARDING'; value: boolean }
   | { type: 'RESET' }
@@ -76,6 +87,9 @@ const initialState: DataState = {
   journal: [],
   transactions: [],
   financeSettings: { budgets: {} },
+  diet: { meals: [], notes: [] },
+  healthItems: [],
+  schedule: { items: [] },
   loading: true,
   needsOnboarding: false,
 }
@@ -124,6 +138,12 @@ function reducer(state: DataState, action: DataAction): DataState {
       return { ...state, transactions: action.transactions }
     case 'SET_FINANCE_SETTINGS':
       return { ...state, financeSettings: action.settings }
+    case 'SET_DIET':
+      return { ...state, diet: action.diet }
+    case 'SET_HEALTH_ITEMS':
+      return { ...state, healthItems: action.items }
+    case 'SET_SCHEDULE':
+      return { ...state, schedule: action.schedule }
     case 'SET_LOADING':
       return { ...state, loading: action.loading }
     case 'SET_NEEDS_ONBOARDING':
@@ -157,6 +177,16 @@ interface DataContextValue extends DataState {
   ) => Promise<string | undefined>
   deleteTransaction: (id: string) => Promise<void>
   updateBudget: (categoryId: string, amount: number) => Promise<void>
+  updateDiet: (patch: Partial<DietState>) => Promise<void>
+  addHealthItem: (
+    item: Omit<HealthItem, 'id' | 'createdAt' | 'updatedAt'>
+  ) => Promise<string | undefined>
+  updateHealthItem: (
+    id: string,
+    patch: Partial<{ label: string; status: HealthStatus; note: string }>
+  ) => Promise<void>
+  deleteHealthItem: (id: string) => Promise<void>
+  updateSchedule: (items: ScheduleItem[]) => Promise<void>
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -237,6 +267,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         settings: settings ?? { budgets: {} },
       })
     })
+    const unsubD = db.subscribeDietState(session.userId, (diet) => {
+      dispatch({ type: 'SET_DIET', diet: diet ?? { meals: [], notes: [] } })
+    })
+    const unsubH = db.subscribeHealthItems(session.userId, (items) => {
+      dispatch({ type: 'SET_HEALTH_ITEMS', items })
+    })
+    const unsubS = db.subscribeScheduleState(session.userId, (schedule) => {
+      dispatch({ type: 'SET_SCHEDULE', schedule: schedule ?? { items: [] } })
+    })
     const unsubP = state.partner
       ? db.subscribePartnerLogs(state.partner.id, (logs) => {
           dispatch({ type: 'SET_PARTNER_LOGS', logs })
@@ -247,6 +286,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       unsubJ()
       unsubT()
       unsubFS()
+      unsubD()
+      unsubH()
+      unsubS()
       if (unsubP) unsubP()
     }
   }, [session, state.partner])
@@ -400,6 +442,53 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [session, state.financeSettings]
   )
 
+  const updateDiet = useCallback(
+    async (patch: Partial<DietState>) => {
+      if (!session) return
+      // Optimistic — subscription will confirm.
+      dispatch({ type: 'SET_DIET', diet: { ...state.diet, ...patch } })
+      await db.updateDietState(session.userId, patch)
+    },
+    [session, state.diet]
+  )
+
+  const addHealthItem = useCallback(
+    async (item: Omit<HealthItem, 'id' | 'createdAt' | 'updatedAt'>) => {
+      if (!session) return undefined
+      return await db.addHealthItem(session.userId, item)
+    },
+    [session]
+  )
+
+  const updateHealthItem = useCallback(
+    async (
+      id: string,
+      patch: Partial<{ label: string; status: HealthStatus; note: string }>
+    ) => {
+      if (!session) return
+      await db.updateHealthItem(session.userId, id, patch)
+    },
+    [session]
+  )
+
+  const deleteHealthItem = useCallback(
+    async (id: string) => {
+      if (!session) return
+      await db.deleteHealthItem(session.userId, id)
+    },
+    [session]
+  )
+
+  const updateSchedule = useCallback(
+    async (items: ScheduleItem[]) => {
+      if (!session) return
+      const next = { items: [...items].sort((a, b) => a.time.localeCompare(b.time)) }
+      dispatch({ type: 'SET_SCHEDULE', schedule: next })
+      await db.updateScheduleState(session.userId, next)
+    },
+    [session]
+  )
+
   return (
     <DataContext.Provider
       value={{
@@ -419,6 +508,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addTransaction,
         deleteTransaction,
         updateBudget,
+        updateDiet,
+        addHealthItem,
+        updateHealthItem,
+        deleteHealthItem,
+        updateSchedule,
       }}
     >
       {children}

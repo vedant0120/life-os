@@ -230,3 +230,55 @@ export interface FinanceTransaction {
 export interface FinanceSettings {
   budgets: Record<string, number>
 }
+
+// ─── Diet (P4 top-level tab) ─────────────────────────────────────────────────
+// Single settings doc users/{uid}/settings/diet with bounded arrays of meals
+// and notes (a meal plan rarely exceeds ~10 entries, so a single-doc rewrite
+// per mutation is fine).
+export interface DietMeal {
+  id: string
+  name: string
+  time: string
+  items: string
+  kcal: number
+  protein: number
+}
+
+export interface DietState {
+  meals: DietMeal[]
+  notes: string[]
+}
+
+// ─── Health (P4 top-level tab) ───────────────────────────────────────────────
+// users/{uid}/health_items/{id} — separate docs so add/edit/delete is cheap
+// and we can later add timestamps + history without a doc rewrite.
+export type HealthStatus =
+  | 'tracking'
+  | 'monitoring'
+  | 'active'
+  | 'action'
+  | 'watch'
+  | 'resolved'
+
+export interface HealthItem {
+  id: string
+  label: string
+  status: HealthStatus
+  note: string
+  createdAt?: unknown
+  updatedAt?: unknown
+}
+
+// ─── Schedule (P4 top-level tab) ─────────────────────────────────────────────
+// Single doc users/{uid}/settings/schedule with an ordered array of items.
+// Keep order client-side (re-sort on save) so consumers don't depend on it.
+export interface ScheduleItem {
+  id: string
+  time: string // free-form, e.g. "7:00 AM"
+  activity: string
+  cat: string // routine | mindset | health | career | work | fitness | creative | selfcare
+}
+
+export interface ScheduleState {
+  items: ScheduleItem[]
+}

@@ -3,15 +3,18 @@
 // Implementation: ./firebaseClient.ts (re-exported as `db` via ./index.ts).
 import type {
   DSAProgress,
+  DietState,
   FinanceSettings,
   FinanceTransaction,
   FitnessLog,
   HabitLog,
+  HealthItem,
   JournalPost,
   NumericEntry,
   OnboardingPayload,
   Profile,
   Reaction,
+  ScheduleState,
   StartupProgress,
   Status,
   Tracker,
@@ -136,4 +139,28 @@ export interface DataClient {
     cb: (settings: FinanceSettings | null) => void
   ): Unsubscribe
   updateFinanceSettings(userId: string, patch: Partial<FinanceSettings>): Promise<void>
+
+  // ── Diet (P4 top-level tab) ───────────────────────────────────────────────
+  subscribeDietState(userId: string, cb: (state: DietState | null) => void): Unsubscribe
+  updateDietState(userId: string, patch: Partial<DietState>): Promise<void>
+
+  // ── Health (P4 top-level tab) ─────────────────────────────────────────────
+  subscribeHealthItems(userId: string, cb: (items: HealthItem[]) => void): Unsubscribe
+  addHealthItem(
+    userId: string,
+    item: Omit<HealthItem, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<string>
+  updateHealthItem(
+    userId: string,
+    id: string,
+    patch: Partial<Omit<HealthItem, 'id' | 'createdAt'>>
+  ): Promise<void>
+  deleteHealthItem(userId: string, id: string): Promise<void>
+
+  // ── Schedule (P4 top-level tab) ───────────────────────────────────────────
+  subscribeScheduleState(
+    userId: string,
+    cb: (state: ScheduleState | null) => void
+  ): Unsubscribe
+  updateScheduleState(userId: string, patch: Partial<ScheduleState>): Promise<void>
 }
