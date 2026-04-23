@@ -3,6 +3,8 @@
 // Implementation: ./firebaseClient.ts (re-exported as `db` via ./index.ts).
 import type {
   DSAProgress,
+  FinanceSettings,
+  FinanceTransaction,
   FitnessLog,
   HabitLog,
   JournalPost,
@@ -114,4 +116,24 @@ export interface DataClient {
     patch: Partial<Omit<JournalPost, 'id' | 'createdAt'>>
   ): Promise<void>
   deleteJournalPost(userId: string, id: string): Promise<void>
+
+  // ── Finance (P4 top-level tab) ────────────────────────────────────────────
+  // Transactions = append-only ledger in users/{uid}/transactions.
+  // Settings (budgets) = single doc users/{uid}/settings/finance.
+  // Investments are derived from transactions at the UI layer — no separate
+  // mirror to keep in sync.
+  subscribeTransactions(
+    userId: string,
+    cb: (txns: FinanceTransaction[]) => void
+  ): Unsubscribe
+  addTransaction(
+    userId: string,
+    tx: Omit<FinanceTransaction, 'id' | 'createdAt'>
+  ): Promise<string>
+  deleteTransaction(userId: string, id: string): Promise<void>
+  subscribeFinanceSettings(
+    userId: string,
+    cb: (settings: FinanceSettings | null) => void
+  ): Unsubscribe
+  updateFinanceSettings(userId: string, patch: Partial<FinanceSettings>): Promise<void>
 }

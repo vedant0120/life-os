@@ -60,6 +60,12 @@ service cloud.firestore {
       match /journal_posts/{doc} {
         allow read, write: if isOwner(uid);
       }
+      match /transactions/{doc} {
+        allow read, write: if isOwner(uid);
+      }
+      match /settings/{doc} {
+        allow read, write: if isOwner(uid);
+      }
     }
 
     match /accountability_reactions/{id} {

@@ -211,3 +211,22 @@ export interface JournalPost {
   content: string
   createdAt?: unknown
 }
+
+// ─── Finance (P4 top-level tab) ──────────────────────────────────────────────
+// users/{uid}/transactions/{id} — append-only ledger
+// users/{uid}/settings/finance — single doc { budgets: {catId: number} }
+export type FinanceTxType = 'income' | 'expense' | 'invest'
+
+export interface FinanceTransaction {
+  id: string
+  type: FinanceTxType
+  date: string // YYYY-MM-DD
+  amount: number
+  category: string // expense cat id, income cat id, or invest bucket id
+  note?: string
+  createdAt?: unknown
+}
+
+export interface FinanceSettings {
+  budgets: Record<string, number>
+}

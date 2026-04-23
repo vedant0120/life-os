@@ -40,6 +40,8 @@ import { getFirebaseAuth, getFirestoreDb } from '../firebase'
 import type {
   ChecklistItem,
   DSAProgress,
+  FinanceSettings,
+  FinanceTransaction,
   FitnessLog,
   HabitLog,
   JournalPost,
@@ -515,5 +517,53 @@ export const firebaseClient: DataClient = {
   },
   async deleteJournalPost(userId, id) {
     await deleteDoc(doc(getFirestoreDb(), 'users', userId, 'journal_posts', id))
+  },
+
+  // ── Finance ───────────────────────────────────────────────────────────────
+  // Transactions live as one doc per tx in users/{uid}/transactions. Budgets
+  // (and any future finance settings) live in users/{uid}/settings/finance.
+  subscribeTransactions(userId, cb): Unsubscribe {
+    const q = query(
+      collection(getFirestoreDb(), 'users', userId, 'transactions'),
+      orderBy('date', 'desc'),
+      limit(500)
+    )
+    return onSnapshot(q, (snap) => {
+      cb(
+        snap.docs.map(
+          (d) =>
+            ({
+              id: d.id,
+              ...(d.data() as Omit<FinanceTransaction, 'id'>),
+            }) as FinanceTransaction
+        )
+      )
+    })
+  },
+  async addTransaction(userId, tx) {
+    const ref = await addDoc(
+      collection(getFirestoreDb(), 'users', userId, 'transactions'),
+      { ...tx, createdAt: serverTimestamp() }
+    )
+    return ref.id
+  },
+  async deleteTransaction(userId, id) {
+    await deleteDoc(doc(getFirestoreDb(), 'users', userId, 'transactions', id))
+  },
+  subscribeFinanceSettings(userId, cb): Unsubscribe {
+    return onSnapshot(
+      doc(getFirestoreDb(), 'users', userId, 'settings', 'finance'),
+      (snap) => {
+        cb(snap.exists() ? (snap.data() as FinanceSettings) : null)
+      }
+    )
+  },
+  async updateFinanceSettings(userId, patch) {
+    // Merge so budgets map is spread-patched and other future fields survive.
+    await setDoc(
+      doc(getFirestoreDb(), 'users', userId, 'settings', 'finance'),
+      patch,
+      { merge: true }
+    )
   },
 }

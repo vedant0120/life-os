@@ -4,6 +4,8 @@ import { db } from '../lib/db'
 import { useAuth } from './AuthContext'
 import type {
   DSAProgress,
+  FinanceSettings,
+  FinanceTransaction,
   FitnessLog,
   Habit,
   HabitLog,
@@ -31,6 +33,8 @@ export interface DataState {
   partnerLogs: HabitLog[]
   reactions: Reaction[]
   journal: JournalPost[]
+  transactions: FinanceTransaction[]
+  financeSettings: FinanceSettings
   loading: boolean
   needsOnboarding: boolean
 }
@@ -53,6 +57,8 @@ type DataAction =
   | { type: 'SET_REACTIONS'; reactions: Reaction[] }
   | { type: 'PUSH_REACTION'; reaction: Reaction }
   | { type: 'SET_JOURNAL'; journal: JournalPost[] }
+  | { type: 'SET_TRANSACTIONS'; transactions: FinanceTransaction[] }
+  | { type: 'SET_FINANCE_SETTINGS'; settings: FinanceSettings }
   | { type: 'SET_LOADING'; loading: boolean }
   | { type: 'SET_NEEDS_ONBOARDING'; value: boolean }
   | { type: 'RESET' }
@@ -68,6 +74,8 @@ const initialState: DataState = {
   partnerLogs: [],
   reactions: [],
   journal: [],
+  transactions: [],
+  financeSettings: { budgets: {} },
   loading: true,
   needsOnboarding: false,
 }
@@ -112,6 +120,10 @@ function reducer(state: DataState, action: DataAction): DataState {
       return { ...state, reactions: [action.reaction, ...state.reactions] }
     case 'SET_JOURNAL':
       return { ...state, journal: action.journal }
+    case 'SET_TRANSACTIONS':
+      return { ...state, transactions: action.transactions }
+    case 'SET_FINANCE_SETTINGS':
+      return { ...state, financeSettings: action.settings }
     case 'SET_LOADING':
       return { ...state, loading: action.loading }
     case 'SET_NEEDS_ONBOARDING':
@@ -140,6 +152,11 @@ interface DataContextValue extends DataState {
     patch: Partial<Omit<JournalPost, 'id' | 'createdAt'>>
   ) => Promise<void>
   deleteJournalPost: (id: string) => Promise<void>
+  addTransaction: (
+    tx: Omit<FinanceTransaction, 'id' | 'createdAt'>
+  ) => Promise<string | undefined>
+  deleteTransaction: (id: string) => Promise<void>
+  updateBudget: (categoryId: string, amount: number) => Promise<void>
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -211,6 +228,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const unsubJ = db.subscribeJournalPosts(session.userId, (journal) => {
       dispatch({ type: 'SET_JOURNAL', journal })
     })
+    const unsubT = db.subscribeTransactions(session.userId, (transactions) => {
+      dispatch({ type: 'SET_TRANSACTIONS', transactions })
+    })
+    const unsubFS = db.subscribeFinanceSettings(session.userId, (settings) => {
+      dispatch({
+        type: 'SET_FINANCE_SETTINGS',
+        settings: settings ?? { budgets: {} },
+      })
+    })
     const unsubP = state.partner
       ? db.subscribePartnerLogs(state.partner.id, (logs) => {
           dispatch({ type: 'SET_PARTNER_LOGS', logs })
@@ -219,6 +245,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return () => {
       unsubR()
       unsubJ()
+      unsubT()
+      unsubFS()
       if (unsubP) unsubP()
     }
   }, [session, state.partner])
@@ -342,6 +370,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [session]
   )
 
+  const addTransaction = useCallback(
+    async (tx: Omit<FinanceTransaction, 'id' | 'createdAt'>) => {
+      if (!session) return undefined
+      return await db.addTransaction(session.userId, tx)
+    },
+    [session]
+  )
+
+  const deleteTransaction = useCallback(
+    async (id: string) => {
+      if (!session) return
+      await db.deleteTransaction(session.userId, id)
+    },
+    [session]
+  )
+
+  const updateBudget = useCallback(
+    async (categoryId: string, amount: number) => {
+      if (!session) return
+      const nextBudgets = { ...state.financeSettings.budgets, [categoryId]: amount }
+      // Optimistic local update — subscription will confirm.
+      dispatch({
+        type: 'SET_FINANCE_SETTINGS',
+        settings: { ...state.financeSettings, budgets: nextBudgets },
+      })
+      await db.updateFinanceSettings(session.userId, { budgets: nextBudgets })
+    },
+    [session, state.financeSettings]
+  )
+
   return (
     <DataContext.Provider
       value={{
@@ -358,6 +416,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addJournalPost,
         updateJournalPost,
         deleteJournalPost,
+        addTransaction,
+        deleteTransaction,
+        updateBudget,
       }}
     >
       {children}
