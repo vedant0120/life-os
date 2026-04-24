@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { Card, SectionTitle } from './ui/primitives'
+import { Card, PageHeader, SectionTitle } from './ui/primitives'
 import { useData } from '../stores/DataContext'
 import type { ScheduleItem } from '../types'
 
@@ -144,27 +144,25 @@ export default function Schedule() {
   )
 
   return (
-    <div className="flex flex-col gap-4">
-      <header className="flex items-center justify-between">
-        <div>
-          <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-brand">
-            Schedule
-          </div>
-          <h1 className="text-[22px] font-bold text-text mt-1">Daily timeline</h1>
-        </div>
-        {!adding && !editingId && (
-          <button
-            type="button"
-            onClick={() => {
-              setAdding(true)
-              setForm(emptyForm())
-            }}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand text-black text-sm font-bold hover:bg-brand-strong transition-colors"
-          >
-            <Plus size={14} aria-hidden /> Add
-          </button>
-        )}
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Schedule"
+        subtitle={`${items.length} ${items.length === 1 ? 'block' : 'blocks'} in your daily timeline`}
+        right={
+          !adding && !editingId ? (
+            <button
+              type="button"
+              onClick={() => {
+                setAdding(true)
+                setForm(emptyForm())
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand text-black text-[14px] font-semibold hover:bg-brand-strong transition-colors"
+            >
+              <Plus size={16} aria-hidden /> Add block
+            </button>
+          ) : null
+        }
+      />
 
       {adding && (
         <Card style={{ border: '1px solid rgba(34,197,94,0.2)' }}>{renderForm()}</Card>

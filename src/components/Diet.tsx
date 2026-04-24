@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { Card, SectionTitle, Badge } from './ui/primitives'
+import { Card, PageHeader, SectionTitle, Badge } from './ui/primitives'
 import { useData } from '../stores/DataContext'
 import type { DietMeal } from '../types'
 
@@ -113,13 +113,11 @@ export default function Diet() {
   )
 
   return (
-    <div className="flex flex-col gap-4">
-      <header>
-        <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-brand">
-          Diet
-        </div>
-        <h1 className="text-[22px] font-bold text-text mt-1">Meal plan & notes</h1>
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Diet"
+        subtitle={`Meal plan · ${meals.length} meals · ${totalKcal} kcal / day`}
+      />
 
       {/* Daily totals */}
       <Card className="grid grid-cols-2 divide-x divide-border text-center">

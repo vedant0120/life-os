@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Plus, SkipForward, X } from 'lucide-react'
-import { Card, Ring } from './ui/primitives'
+import { Card, Ring, PageHeader } from './ui/primitives'
 import { todayStr } from './shared'
 import { useData } from '../stores/DataContext'
 import type { Status } from '../types'
@@ -69,15 +69,28 @@ export default function Today() {
   }, [habits, statusByHabit, logHabit])
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Today" subtitle={formatDate(new Date())} />
+
       {/* Hero */}
-      <Card className="flex items-center gap-4" style={{ padding: 16 }}>
-        <Ring pct={pct} size={64} color="var(--color-success)" />
+      <Card className="flex items-center gap-5">
+        <Ring pct={pct} size={80} color="var(--color-success)">
+          <span className="text-[16px] font-semibold font-mono text-success">
+            {Math.round(pct * 100)}%
+          </span>
+        </Ring>
         <div className="flex-1 min-w-0">
-          <div className="text-xl font-bold text-text font-mono">
-            {doneCount}/{total} complete
+          <div className="text-[28px] font-semibold text-text font-mono leading-none">
+            {doneCount}/{total}
+            <span className="text-[16px] text-muted font-normal ml-2">complete</span>
           </div>
-          <div className="text-[13px] text-muted">{formatDate(new Date())}</div>
+          <div className="text-[14px] text-muted mt-2">
+            {total === 0
+              ? 'Nothing to check in yet'
+              : total === doneCount
+                ? 'All done — great work.'
+                : `${total - doneCount} habits left for today.`}
+          </div>
         </div>
       </Card>
 

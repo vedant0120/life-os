@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
-import { Card, SectionTitle, Pill, ProgressBar } from './ui/primitives'
+import { Card, PageHeader, SectionTitle, Pill, ProgressBar } from './ui/primitives'
 import { todayStr } from './shared'
 import {
   EXPENSE_CATS,
@@ -115,39 +115,37 @@ export default function Finance() {
   ]
 
   return (
-    <div className="flex flex-col gap-4">
-      <header className="flex items-center justify-between">
-        <div>
-          <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-brand">
-            Finance
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Finance"
+        subtitle={`${fmtMoney(totalInv)} invested across ${INVEST_BUCKETS.length} buckets`}
+        right={
+          <div className="inline-flex items-center gap-2 text-[14px] font-medium">
+            <button
+              type="button"
+              onClick={() => setMonth(shiftMonth(month, -1))}
+              className="w-9 h-9 rounded-lg border border-border hover:border-border-strong text-muted hover:text-text flex items-center justify-center"
+              aria-label="Previous month"
+            >
+              <ChevronLeft size={16} aria-hidden />
+            </button>
+            <span className="min-w-[110px] text-center text-text font-mono">
+              {monthLabel(month)}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const next = shiftMonth(month, 1)
+                if (next <= todayStr().slice(0, 7)) setMonth(next)
+              }}
+              className="w-9 h-9 rounded-lg border border-border hover:border-border-strong text-muted hover:text-text flex items-center justify-center"
+              aria-label="Next month"
+            >
+              <ChevronRight size={16} aria-hidden />
+            </button>
           </div>
-          <h1 className="text-[22px] font-bold text-text mt-1 font-mono">
-            {fmtMoney(totalInv)} invested
-          </h1>
-        </div>
-        <div className="inline-flex items-center gap-1.5 text-xs font-mono text-muted">
-          <button
-            type="button"
-            onClick={() => setMonth(shiftMonth(month, -1))}
-            className="w-7 h-7 rounded-md border border-border hover:text-text flex items-center justify-center"
-            aria-label="Previous month"
-          >
-            <ChevronLeft size={14} aria-hidden />
-          </button>
-          <span className="min-w-[90px] text-center text-text">{monthLabel(month)}</span>
-          <button
-            type="button"
-            onClick={() => {
-              const next = shiftMonth(month, 1)
-              if (next <= todayStr().slice(0, 7)) setMonth(next)
-            }}
-            className="w-7 h-7 rounded-md border border-border hover:text-text flex items-center justify-center"
-            aria-label="Next month"
-          >
-            <ChevronRight size={14} aria-hidden />
-          </button>
-        </div>
-      </header>
+        }
+      />
 
       <div className="flex gap-1 bg-surface-2 rounded-lg p-1 self-start">
         {(['overview', 'txns', 'budget', 'invest'] as const).map((s) => (

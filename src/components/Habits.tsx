@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ArrowLeft, Plus, Star } from 'lucide-react'
-import { Card, SectionTitle, ProgressBar, MiniHeatmap } from './ui/primitives'
+import { Card, PageHeader, SectionTitle, ProgressBar, MiniHeatmap } from './ui/primitives'
 import { calcStats } from './shared'
 import { CAT_COLORS, CATEGORIES } from '../data/constants'
 import { useData } from '../stores/DataContext'
@@ -164,24 +164,20 @@ export default function Habits() {
 
   // ── List view ──────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-3">
-      <header className="flex items-center justify-between">
-        <div>
-          <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-brand">
-            Habits
-          </div>
-          <h1 className="text-[22px] font-bold text-text mt-1 font-mono">
-            {habits.length} tracked
-          </h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowAdd(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand text-black text-sm font-bold hover:bg-brand-strong transition-colors"
-        >
-          <Plus size={16} aria-hidden /> Add
-        </button>
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Habits"
+        subtitle={`${habits.length} ${habits.length === 1 ? 'habit' : 'habits'} tracked across all categories`}
+        right={
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand text-black text-[14px] font-semibold hover:bg-brand-strong transition-colors"
+          >
+            <Plus size={16} aria-hidden /> Add habit
+          </button>
+        }
+      />
 
       {/* Legend */}
       <div className="flex items-center gap-3 text-[10px] text-muted">

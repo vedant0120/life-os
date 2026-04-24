@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { Card, SectionTitle, Badge, Ring, ProgressBar } from './ui/primitives'
+import { Card, PageHeader, SectionTitle, Badge, Ring, ProgressBar } from './ui/primitives'
 import { todayStr } from './shared'
 import { useData } from '../stores/DataContext'
 import type { HealthItem, HealthStatus } from '../types'
@@ -159,13 +159,11 @@ export default function Health() {
   )
 
   return (
-    <div className="flex flex-col gap-4">
-      <header>
-        <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-brand">
-          Health
-        </div>
-        <h1 className="text-[22px] font-bold text-text mt-1">Weight & dashboard</h1>
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Health"
+        subtitle={`${latestWeight != null ? latestWeight + 'kg current' : 'Log your first weight'} · ${healthItems.length} tracked items`}
+      />
 
       {/* Weight journey */}
       <Card>

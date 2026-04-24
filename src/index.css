@@ -42,6 +42,9 @@
   margin: 0;
   padding: 0;
 }
+html {
+  font-size: 16px;
+}
 html,
 body,
 #root {
@@ -55,22 +58,32 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  font-weight: 450;
+  letter-spacing: -0.005em;
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 ::-webkit-scrollbar {
-  width: 3px;
-  height: 3px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
-  border-radius: 2px;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
 }
 input,
 select,
 textarea,
 button {
   font-family: inherit;
+  font-size: inherit;
 }
 
 /* TODO remove after P3.X migrates — legacy globals still consumed by

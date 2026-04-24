@@ -1,7 +1,15 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Plus, Sparkles } from 'lucide-react'
-import { Card, SectionTitle, Ring, ProgressBar, Badge } from './ui/primitives'
+import {
+  Card,
+  PageHeader,
+  SectionTitle,
+  Ring,
+  ProgressBar,
+  Badge,
+  StatCard,
+} from './ui/primitives'
 import { calcStats, todayStr } from './shared'
 import { useData } from '../stores/DataContext'
 import type { HabitStats } from '../types'
@@ -21,15 +29,12 @@ export default function Dashboard() {
     return m
   }, [habits, logs])
 
-  // ── Today summary ──────────────────────────────────────────────────────
   const todayLogs = logs.filter((l) => l.d === today)
   const doneToday = habits.filter(
     (h) => todayLogs.find((l) => l.h === h)?.s === 'success'
   ).length
   const totalToday = habits.length
-  const todayPct = totalToday ? doneToday / totalToday : 0
 
-  // ── Weekly rate (last 7 days) ──────────────────────────────────────────
   const last7: string[] = []
   for (let i = 6; i >= 0; i--) {
     const d = new Date()
@@ -39,32 +44,29 @@ export default function Dashboard() {
   const weekLogs = logs.filter((l) => last7.includes(l.d))
   const weekSuccess = weekLogs.filter((l) => l.s === 'success').length
   const weekTotal = weekLogs.filter((l) => l.s !== null && l.s !== 'skip').length
-  const weekPct = weekTotal ? weekSuccess / weekTotal : 0
+  const weekPct = weekTotal ? Math.round((weekSuccess / weekTotal) * 100) : 0
 
-  // ── Project rings ──────────────────────────────────────────────────────
   const dsaDone = Object.values(dsaProg).filter(Boolean).length
   const dsaTotal = Object.keys(dsaProg).length
   const startupDone = Object.values(startupProg).filter(Boolean).length
   const startupTotal = Object.keys(startupProg).length
 
-  // ── Weight ─────────────────────────────────────────────────────────────
-  const firstWeight = fitLogs[0]?.weight ?? null
   const latestWeight = fitLogs[fitLogs.length - 1]?.weight ?? null
   const weightLabel = latestWeight != null ? `${latestWeight}kg` : '—'
 
-  // ── Anchor-ish: top-3 habits by success rate as a proxy until we
-  // have a real per-habit anchor flag backed by Firestore. ────────────────
+  const bestStreak = habits.length
+    ? Math.max(...habits.map((h) => statsMap[h]?.longest || 0))
+    : 0
+
   const anchorHabits = [...habits]
     .sort((a, b) => (statsMap[b]?.rate || 0) - (statsMap[a]?.rate || 0))
     .slice(0, 5)
 
-  // ── Partner ────────────────────────────────────────────────────────────
   const partnerToday = partnerLogs?.filter((l) => l.d === today) || []
   const partnerDone =
     partnerHabits?.filter((h) => partnerToday.find((l) => l.h === h && l.s === 'success'))
       .length || 0
 
-  // ── 7-day heatmap strip ────────────────────────────────────────────────
   const dayCompletion = last7.map((iso) => {
     if (!habits.length) return 0
     const dayLogs = logs.filter((l) => l.d === iso)
@@ -76,30 +78,27 @@ export default function Dashboard() {
   const stats = [
     {
       label: 'Today',
-      val: totalToday ? `${doneToday}/${totalToday}` : '—',
-      pct: todayPct,
+      value: totalToday ? `${doneToday}/${totalToday}` : '—',
       color: 'var(--color-success)',
+      hint: totalToday ? `${Math.round((doneToday / totalToday) * 100)}% of habits done` : 'add a habit to start',
     },
     {
       label: 'Week',
-      val: weekTotal ? `${Math.round(weekPct * 100)}%` : '—',
-      pct: weekPct,
+      value: weekTotal ? `${weekPct}%` : '—',
       color: 'var(--color-info)',
+      hint: weekTotal ? 'last 7-day success rate' : 'log some habits to see weekly',
     },
     {
-      label: 'DSA',
-      val: dsaTotal ? `${dsaDone}/${dsaTotal}` : '—',
-      pct: dsaTotal ? dsaDone / dsaTotal : 0,
-      color: 'var(--color-warn)',
+      label: 'Best streak',
+      value: bestStreak ? `${bestStreak}d` : '—',
+      color: 'var(--color-plum)',
+      hint: bestStreak ? 'longest single-habit run' : 'no streaks yet',
     },
     {
       label: 'Weight',
-      val: weightLabel,
-      pct:
-        firstWeight != null && latestWeight != null && firstWeight > 0
-          ? Math.max(0, Math.min(1, (firstWeight - latestWeight) / Math.max(1, firstWeight - 78)))
-          : 0,
-      color: 'var(--color-plum)',
+      value: weightLabel,
+      color: 'var(--color-warn)',
+      hint: fitLogs.length ? `${fitLogs.length} weigh-ins` : 'no logs yet',
     },
   ]
 
@@ -138,45 +137,35 @@ export default function Dashboard() {
   }>
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Header */}
-      <header>
-        <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-brand">
-          Life OS
-        </div>
-        <h1 className="text-[22px] font-bold text-text mt-1">
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </h1>
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Dashboard"
+        subtitle={new Date().toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })}
+      />
 
-      {/* Stat rings */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {stats.map((s) => (
-          <Card key={s.label} className="text-center" style={{ padding: 14 }}>
-            <div className="flex justify-center mb-2">
-              <Ring pct={s.pct} size={56} color={s.color}>
-                <span
-                  className="text-[11px] font-bold font-mono"
-                  style={{ color: s.color }}
-                >
-                  {s.val}
-                </span>
-              </Ring>
-            </div>
-            <div className="text-[11px] font-semibold text-muted">{s.label}</div>
-          </Card>
+          <StatCard
+            key={s.label}
+            label={s.label}
+            value={s.value}
+            color={s.color}
+            hint={s.hint}
+          />
         ))}
       </div>
 
       {/* Anchor habits */}
       {habits.length > 0 ? (
         <Card>
-          <SectionTitle>Anchor habits — streaks</SectionTitle>
-          <div className="flex flex-col gap-2.5">
+          <SectionTitle hint={`${habits.length} tracked`}>Top streaks</SectionTitle>
+          <div className="flex flex-col gap-3">
             {anchorHabits.map((h) => {
               const st = statsMap[h]
               const streak = st?.current ?? 0
@@ -184,15 +173,15 @@ export default function Dashboard() {
               return (
                 <div key={h} className="flex items-center gap-3">
                   <div
-                    className="w-2 h-2 rounded-full shrink-0"
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
                     style={{
                       background: 'var(--color-brand)',
-                      boxShadow: glowing ? '0 0 8px var(--color-brand)' : 'none',
+                      boxShadow: glowing ? '0 0 10px var(--color-brand)' : 'none',
                     }}
                   />
-                  <span className="flex-1 text-[13px] font-medium text-text truncate">{h}</span>
+                  <span className="flex-1 text-[15px] text-text truncate">{h}</span>
                   <span
-                    className={`text-[13px] font-bold font-mono ${
+                    className={`text-[15px] font-semibold font-mono ${
                       glowing ? 'text-success' : 'text-muted'
                     }`}
                   >
@@ -204,37 +193,37 @@ export default function Dashboard() {
           </div>
         </Card>
       ) : (
-        <Card className="flex flex-col items-center text-center gap-3 py-8">
-          <div className="w-10 h-10 rounded-full bg-brand/15 flex items-center justify-center">
-            <Plus size={18} className="text-brand" aria-hidden />
+        <Card className="flex flex-col items-center text-center gap-3 py-10">
+          <div className="w-12 h-12 rounded-full bg-brand/15 flex items-center justify-center">
+            <Plus size={20} className="text-brand" aria-hidden />
           </div>
           <div>
-            <div className="text-sm font-semibold text-text">No habits yet</div>
-            <div className="text-xs text-muted mt-1">
+            <div className="text-base font-semibold text-text">No habits yet</div>
+            <div className="text-[14px] text-muted mt-1">
               Add a few daily habits to start tracking streaks.
             </div>
           </div>
           <Link
             to="/habits"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-brand text-black text-xs font-bold hover:bg-brand-strong transition-colors"
+            className="inline-flex items-center gap-2 mt-1 px-4 py-2 rounded-lg bg-brand text-black text-[14px] font-semibold hover:bg-brand-strong transition-colors"
           >
-            <Plus size={14} aria-hidden /> Add your first habit
+            <Plus size={16} aria-hidden /> Add your first habit
           </Link>
         </Card>
       )}
 
       {/* 7-day strip */}
       <Card>
-        <div className="flex items-center justify-between mb-3">
-          <SectionTitle>Last 7 days</SectionTitle>
-          <Link
-            to="/analytics"
-            className="text-[11px] text-muted hover:text-text inline-flex items-center gap-1"
-          >
-            Analytics <ArrowRight size={12} aria-hidden />
-          </Link>
-        </div>
-        <div className="flex items-end gap-1.5">
+        <SectionTitle
+          hint={
+            <Link to="/analytics" className="hover:text-text inline-flex items-center gap-1">
+              Analytics <ArrowRight size={12} aria-hidden />
+            </Link>
+          }
+        >
+          Last 7 days
+        </SectionTitle>
+        <div className="flex items-end gap-2">
           {last7.map((iso, i) => {
             const pct = dayCompletion[i]
             const date = new Date(iso)
@@ -250,14 +239,16 @@ export default function Dashboard() {
                       ? 'bg-success/20'
                       : 'bg-white/[0.04]'
             return (
-              <div key={iso} className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
+              <div key={iso} className="flex-1 flex flex-col items-center gap-2 min-w-0">
                 <div
-                  className={`w-full h-10 rounded-md ${bg} ${
+                  className={`w-full h-14 rounded-lg ${bg} ${
                     isToday ? 'ring-2 ring-brand/60 ring-offset-2 ring-offset-surface' : ''
                   }`}
                   title={`${iso}: ${Math.round(pct * 100)}%`}
                 />
-                <div className="text-[10px] font-mono text-muted">{DAY_LABELS[date.getDay()]}</div>
+                <div className="text-[12px] font-medium text-muted">
+                  {DAY_LABELS[date.getDay()]}
+                </div>
               </div>
             )
           })}
@@ -266,32 +257,29 @@ export default function Dashboard() {
 
       {/* Project rings */}
       {projects.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {projects.map((p) => (
             <Link
               key={p.label}
               to={p.to}
-              className="group bg-surface border border-border rounded-[14px] p-4 flex items-center gap-4 hover:border-border-strong transition-colors"
+              className="group bg-surface border border-border rounded-2xl p-5 flex items-center gap-4 hover:border-border-strong transition-colors"
             >
-              <Ring pct={p.pct} size={52} color={p.color}>
-                <span
-                  className="text-[11px] font-bold font-mono"
-                  style={{ color: p.color }}
-                >
+              <Ring pct={p.pct} size={60} color={p.color}>
+                <span className="text-[12px] font-semibold font-mono" style={{ color: p.color }}>
                   {Math.round(p.pct * 100)}%
                 </span>
               </Ring>
               <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-bold text-text truncate">
+                <div className="text-[15px] font-semibold text-text truncate">
                   <span className="mr-1.5" aria-hidden>
                     {p.icon}
                   </span>
                   {p.label}
                 </div>
-                <div className="text-xs text-muted mt-1 truncate">{p.sub}</div>
+                <div className="text-[13px] text-muted mt-1 truncate">{p.sub}</div>
               </div>
               <ArrowRight
-                size={14}
+                size={16}
                 className="text-muted group-hover:text-text transition-colors"
                 aria-hidden
               />
@@ -301,38 +289,38 @@ export default function Dashboard() {
       ) : (
         <Link
           to="/trackers"
-          className="group rounded-[14px] border border-dashed border-border bg-surface/50 p-4 flex items-center gap-4 hover:border-border-strong hover:bg-surface transition-colors"
+          className="group rounded-2xl border border-dashed border-border bg-surface/50 p-5 flex items-center gap-4 hover:border-border-strong hover:bg-surface transition-colors"
         >
-          <div className="w-12 h-12 shrink-0 rounded-md bg-surface-2 border border-border flex items-center justify-center">
+          <div className="w-12 h-12 shrink-0 rounded-lg bg-surface-2 border border-border flex items-center justify-center">
             <Plus size={20} className="text-muted group-hover:text-text" aria-hidden />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-bold text-text">Set up a tracker</div>
-            <div className="text-xs text-muted mt-1">
+            <div className="text-[15px] font-semibold text-text">Set up a tracker</div>
+            <div className="text-[13px] text-muted mt-1">
               Add roadmaps, checklists, or numeric logs — they'll appear here with progress rings.
             </div>
           </div>
-          <ArrowRight size={16} className="text-muted group-hover:text-text" aria-hidden />
+          <ArrowRight size={18} className="text-muted group-hover:text-text" aria-hidden />
         </Link>
       )}
 
-      {/* DSA + Startup progress bars (compact) */}
+      {/* DSA + Startup progress bars */}
       {(dsaTotal > 0 || startupTotal > 0) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {dsaTotal > 0 && (
             <Card>
-              <SectionTitle>DSA progress</SectionTitle>
+              <SectionTitle hint={`${dsaDone}/${dsaTotal}`}>DSA progress</SectionTitle>
               <ProgressBar pct={dsaDone / dsaTotal} color="var(--color-info)" h={8} />
-              <div className="text-xs text-muted mt-2">
+              <div className="text-[13px] text-muted mt-3">
                 {dsaDone} of {dsaTotal} topics covered
               </div>
             </Card>
           )}
           {startupTotal > 0 && (
             <Card>
-              <SectionTitle>Startup progress</SectionTitle>
+              <SectionTitle hint={`${startupDone}/${startupTotal}`}>Startup progress</SectionTitle>
               <ProgressBar pct={startupDone / startupTotal} color="var(--color-plum)" h={8} />
-              <div className="text-xs text-muted mt-2">
+              <div className="text-[13px] text-muted mt-3">
                 {startupDone} of {startupTotal} tasks done
               </div>
             </Card>
@@ -343,14 +331,12 @@ export default function Dashboard() {
       {/* Partner snapshot */}
       {partner && (
         <Card accent="var(--color-success)">
-          <div className="flex items-center justify-between mb-3">
-            <SectionTitle>🤝 {partner.name || 'Partner'} today</SectionTitle>
-            <Badge
-              text={`${partnerDone} / ${partnerHabits?.length || 0} done`}
-              color="var(--color-success)"
-            />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
+          <SectionTitle
+            hint={<Badge text={`${partnerDone} / ${partnerHabits?.length || 0} done`} color="var(--color-success)" />}
+          >
+            🤝 {partner.name || 'Partner'} today
+          </SectionTitle>
+          <div className="flex flex-wrap gap-2">
             {(partnerHabits || []).slice(0, 8).map((h) => {
               const s = partnerToday.find((l) => l.h === h)?.s
               const cls =
@@ -362,9 +348,9 @@ export default function Dashboard() {
               return (
                 <div
                   key={h}
-                  className={`px-2.5 py-1 rounded-md border text-[11px] font-medium ${cls}`}
+                  className={`px-3 py-1.5 rounded-lg border text-[13px] font-medium ${cls}`}
                 >
-                  {h.length > 18 ? h.slice(0, 18) + '…' : h}
+                  {h.length > 20 ? h.slice(0, 20) + '…' : h}
                 </div>
               )
             })}
@@ -374,18 +360,16 @@ export default function Dashboard() {
 
       {/* AI Coach placeholder */}
       <Card>
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 shrink-0 rounded-md bg-brand/15 flex items-center justify-center">
-            <Sparkles size={16} className="text-brand" aria-hidden />
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 shrink-0 rounded-lg bg-brand/15 flex items-center justify-center">
+            <Sparkles size={18} className="text-brand" aria-hidden />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <div className="text-[11px] font-bold tracking-[0.15em] uppercase text-brand">
-                AI Coach
-              </div>
+              <div className="text-[15px] font-semibold text-text">AI Coach</div>
               <Badge text="Coming soon" color="var(--color-muted)" />
             </div>
-            <div className="text-xs text-muted mt-1">
+            <div className="text-[14px] text-muted mt-1">
               Personalized insights once the backend proxy is wired.
             </div>
           </div>

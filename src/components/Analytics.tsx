@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Card, SectionTitle, ProgressBar } from './ui/primitives'
+import { Card, PageHeader, SectionTitle, ProgressBar } from './ui/primitives'
 import { calcStats } from './shared'
 import { useData } from '../stores/DataContext'
 import type { HabitStats } from '../types'
@@ -54,13 +54,11 @@ export default function Analytics() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <header>
-        <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-brand">
-          Analytics
-        </div>
-        <h1 className="text-[22px] font-bold text-text mt-1 font-mono">{overallScore}% overall</h1>
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Analytics"
+        subtitle={`${overallScore}% overall success across ${habits.length} habits`}
+      />
 
       {/* 30-day bar chart */}
       <Card>

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
-import { Card, SectionTitle, Badge, Pill } from './ui/primitives'
+import { Card, PageHeader, SectionTitle, Badge, Pill } from './ui/primitives'
 import { todayStr } from './shared'
 import { useData } from '../stores/DataContext'
 import type { JournalPost, JournalPostType } from '../types'
@@ -136,15 +136,11 @@ export default function Journal() {
   const promptList = filter === 'all' ? PROMPTS.daily : PROMPTS[filter]
 
   return (
-    <div className="flex flex-col gap-4">
-      <header>
-        <div className="text-[11px] font-bold tracking-[0.2em] uppercase text-brand">
-          Journal
-        </div>
-        <h1 className="text-[22px] font-bold text-text mt-1">
-          {journal.length} {journal.length === 1 ? 'entry' : 'entries'}
-        </h1>
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Journal"
+        subtitle={`Daily, weekly and monthly notes — ${journal.length} ${journal.length === 1 ? 'entry' : 'entries'} in total`}
+      />
 
       {/* Filter pills */}
       <div className="flex gap-1 bg-surface-2 rounded-lg p-1 self-start">

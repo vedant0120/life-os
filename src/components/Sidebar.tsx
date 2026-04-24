@@ -32,7 +32,7 @@ interface NavGroup {
 
 const GROUPS: readonly NavGroup[] = [
   {
-    label: 'Daily',
+    label: 'Main',
     items: [
       { label: 'Dashboard', to: '/', Icon: Home, end: true },
       { label: 'Today', to: '/today', Icon: Sun },
@@ -66,10 +66,10 @@ const GROUPS: readonly NavGroup[] = [
 
 const navCls = (isActive: boolean) =>
   [
-    'group h-10 px-3.5 rounded-lg flex items-center gap-3 text-sm font-medium transition-colors',
+    'group h-11 px-3 rounded-lg flex items-center gap-3 text-[14px] font-medium transition-colors',
     isActive
       ? 'bg-brand/15 text-brand'
-      : 'text-text/75 hover:text-text hover:bg-surface-2',
+      : 'text-text/80 hover:text-text hover:bg-surface-2',
   ].join(' ')
 
 export default function Sidebar() {
@@ -79,26 +79,26 @@ export default function Sidebar() {
   const initial = displayName.trim().charAt(0).toUpperCase() || 'U'
 
   return (
-    <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-surface border-r border-border h-screen sticky top-0 px-4 py-5 gap-5">
-      <div className="flex items-center gap-3 px-1.5">
+    <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-surface border-r border-border h-screen sticky top-0 px-4 py-6 gap-5">
+      <div className="flex items-center gap-3 px-2">
         <div
-          className="w-9 h-9 rounded-md bg-gradient-to-br from-brand to-brand-strong flex items-center justify-center text-white text-sm font-semibold shrink-0"
+          className="w-10 h-10 rounded-lg bg-gradient-to-br from-brand to-brand-strong flex items-center justify-center text-black text-base font-semibold shrink-0"
           aria-hidden
         >
           {initial}
         </div>
         <div className="flex flex-col min-w-0">
-          <span className="text-[11px] font-semibold tracking-[0.18em] text-muted uppercase leading-none">
+          <span className="text-[13px] font-semibold tracking-[0.18em] text-text uppercase leading-none">
             Life OS
           </span>
-          <span className="text-sm font-medium text-text truncate mt-1">{displayName}</span>
+          <span className="text-[13px] text-muted truncate mt-1">{displayName}</span>
         </div>
       </div>
 
-      <nav className="flex-1 flex flex-col gap-4 overflow-y-auto">
+      <nav className="flex-1 flex flex-col gap-5 overflow-y-auto">
         {GROUPS.map((group) => (
           <div key={group.label} className="flex flex-col gap-0.5">
-            <div className="px-3.5 mb-1 text-[10px] font-semibold tracking-[0.16em] text-muted/80 uppercase">
+            <div className="px-3 mb-1 text-[13px] font-medium text-muted">
               {group.label}
             </div>
             {group.items.map(({ label, to, Icon, end }) => (
@@ -113,7 +113,7 @@ export default function Sidebar() {
                   <>
                     <Icon
                       size={18}
-                      strokeWidth={2.25}
+                      strokeWidth={2}
                       aria-hidden
                       className={
                         isActive
@@ -130,7 +130,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto pt-3 border-t border-border flex flex-col gap-1">
+      <div className="mt-auto pt-4 border-t border-border flex flex-col gap-0.5">
         {canInstall && (
           <button
             type="button"
@@ -138,7 +138,7 @@ export default function Sidebar() {
             title="Install app"
             className={navCls(false)}
           >
-            <Download size={18} strokeWidth={2.25} className="shrink-0" aria-hidden />
+            <Download size={18} strokeWidth={2} className="shrink-0" aria-hidden />
             <span>Install app</span>
           </button>
         )}
@@ -148,7 +148,7 @@ export default function Sidebar() {
           title="Sign out"
           className={navCls(false)}
         >
-          <LogOut size={18} strokeWidth={2.25} className="shrink-0" aria-hidden />
+          <LogOut size={18} strokeWidth={2} className="shrink-0" aria-hidden />
           <span>Sign out</span>
         </button>
       </div>
