@@ -42,6 +42,12 @@ export interface Profile {
   partner_status?: string | null
   avatar_color?: string | null
   onboarding_data?: Record<string, unknown> | null
+  // P1 settings — written by Onboarding + Settings page.
+  onboarded?: boolean | null
+  anchor_habits?: string[] | null
+  currency?: string | null // ISO 4217 (USD, EUR, INR, …); UI only renders, no conversion.
+  weight_unit?: 'kg' | 'lb' | null
+  review_day?: 0 | 1 | 2 | 3 | 4 | 5 | 6 | null // 0 = Sunday … 6 = Saturday
   created_at?: string | null
 }
 
@@ -84,29 +90,17 @@ export interface HabitStats {
   total: number
 }
 
-// Shape of the onboarding wizard payload passed to App.handleOnboardingComplete.
+// Shape of the onboarding wizard payload. Open-ended: the user types every
+// habit/goal name themselves. Categories are app primitives (color + icon).
 export interface OnboardingPayload {
   name: string
-  focusAreas: string[]
-  selectedHabits: string[]
-  dsaTarget: string
-  fitnessGoal: string
-  currentWeight: string
-  targetWeight: string
-  monthlyIncome: string
-  wakeTime: string
-  partnerEmail: string
-  habitData: OnboardingHabit[]
-}
-
-// Habit template entry used by the onboarding wizard.
-export interface OnboardingHabit {
-  name: string
-  category: string
-  color: string
-  icon: string
-  priority: number
-  note: string
+  // Selected category ids from CAT_COLORS — used to color the habits the user
+  // creates. Not pre-populated content.
+  selectedCategories: string[]
+  // 3–5 anchor habits the user typed in, with their chosen category.
+  anchorHabits: { name: string; category: string }[]
+  // Optional first roadmap tracker (created empty, user fills in later).
+  roadmap?: { name: string; targetLabel?: string }
 }
 
 // NOTE: The old `SharedProps` interface was removed in Epic 4 — components

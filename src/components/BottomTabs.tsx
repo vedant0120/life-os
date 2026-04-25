@@ -6,7 +6,6 @@ import {
   BarChart3,
   TrendingUp,
   MoreHorizontal,
-  Home,
   Wallet,
   Utensils,
   Heart,
@@ -15,6 +14,8 @@ import {
   Download,
   LogOut,
   BookText,
+  CalendarCheck,
+  Settings as SettingsIcon,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '../stores/AuthContext'
@@ -28,21 +29,23 @@ interface TabItem {
   end?: boolean
 }
 
+// Primary tabs aligned with the new IA: Today + the three review/build/track surfaces.
 const PRIMARY: readonly TabItem[] = [
-  { label: 'Today', to: '/today', Icon: Sun },
+  { label: 'Today', to: '/today', Icon: Sun, end: true },
   { label: 'Habits', to: '/habits', Icon: CheckSquare },
   { label: 'Trackers', to: '/trackers', Icon: BarChart3 },
-  { label: 'Analytics', to: '/analytics', Icon: TrendingUp },
+  { label: 'Journal', to: '/journal', Icon: BookText },
 ]
 
 const MORE: readonly TabItem[] = [
-  { label: 'Dashboard', to: '/', Icon: Home, end: true },
-  { label: 'Journal', to: '/journal', Icon: BookText },
-  { label: 'Finance', to: '/finance', Icon: Wallet },
-  { label: 'Diet', to: '/diet', Icon: Utensils },
-  { label: 'Health', to: '/health', Icon: Heart },
+  { label: 'Review', to: '/review', Icon: CalendarCheck },
   { label: 'Schedule', to: '/schedule', Icon: Calendar },
+  { label: 'Analytics', to: '/analytics', Icon: TrendingUp },
+  { label: 'Health', to: '/health', Icon: Heart },
+  { label: 'Diet', to: '/diet', Icon: Utensils },
+  { label: 'Finance', to: '/finance', Icon: Wallet },
   { label: 'Accountability', to: '/accountability', Icon: Users },
+  { label: 'Settings', to: '/settings', Icon: SettingsIcon },
 ]
 
 const slotCls = (isActive: boolean) =>

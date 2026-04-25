@@ -202,6 +202,8 @@ interface DataContextValue extends DataState {
     topicId: string,
     done: boolean
   ) => Promise<void>
+  // P1 — profile mutations used by Settings + Onboarding-redux + anchor toggles.
+  updateMyProfile: (patch: Partial<Profile>) => Promise<void>
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -540,6 +542,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [session]
   )
 
+  const updateMyProfile = useCallback(
+    async (patch: Partial<Profile>) => {
+      if (!session) return
+      // Optimistic — refreshProfile will re-sync on next session change. For
+      // now we patch via setProfile so the UI updates instantly.
+      await db.updateProfile(session.userId, patch)
+      const fresh = await db.getProfile(session.userId)
+      if (fresh) setProfile(fresh)
+    },
+    [session, setProfile]
+  )
+
   return (
     <DataContext.Provider
       value={{
@@ -568,6 +582,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateTracker,
         deleteTracker,
         toggleRoadmapTopic,
+        updateMyProfile,
       }}
     >
       {children}

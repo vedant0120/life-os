@@ -44,22 +44,22 @@ export default function App() {
     )
   }
 
-  // ── Logged-in but no habits yet → Onboarding ──────────────────────────
+  // ── Logged-in but no habits yet → /welcome (open-ended onboarding) ────
   if (needsOnboarding) {
     return (
       <Routes>
         <Route
-          path="/onboarding"
+          path="/welcome"
           element={
             <Onboarding
               onComplete={async (d) => {
                 await completeOnboarding(d)
-                navigate('/', { replace: true })
+                navigate('/today', { replace: true })
               }}
             />
           }
         />
-        <Route path="*" element={<Navigate to="/onboarding" replace />} />
+        <Route path="*" element={<Navigate to="/welcome" replace />} />
       </Routes>
     )
   }

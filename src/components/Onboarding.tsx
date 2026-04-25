@@ -1,712 +1,355 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Plus, Trash2, X } from 'lucide-react'
 import type { OnboardingPayload } from '../types'
+import { CAT_COLORS, CATEGORIES } from '../data/constants'
 
-// Minimal first-run flow: name, focus areas, goal details, wake time, optional
-// partner email. Habit seeding has been removed — users add habits manually
-// from the Habits tab so the template ships with zero personal data.
+// ─── Onboarding (P1) ─────────────────────────────────────────────────────────
+// 3-step open-ended wizard. The user types every habit + project name in
+// their own words. Categories are app primitives (color + icon) — picking one
+// only colors the things the user writes; it does NOT pre-create content.
+//
+// Tone: neutral utility (locked spec 3B). No exclamation marks, no coach copy.
 
-const DSA_TARGETS = [
-  {
-    id: 'faang',
-    label: 'Top Tech',
-    sub: 'Big-tech interview prep',
-    color: '#3b82f6',
-  },
-  { id: 'quant', label: 'Quant / Finance', sub: 'Quant trading roles', color: '#f59e0b' },
-  {
-    id: 'startup',
-    label: 'Top Startups',
-    sub: 'Series B+, fast-growing companies',
-    color: '#22c55e',
-  },
-  { id: 'any', label: 'Any better job', sub: 'Upgrade from current role', color: '#818cf8' },
+const STEPS = [
+  { id: 'name', title: 'Your name' },
+  { id: 'categories', title: 'Areas you care about' },
+  { id: 'anchors', title: 'Anchor habits' },
+  { id: 'goal', title: 'Big goal (optional)' },
 ]
 
-const FITNESS_GOALS = [
-  { id: 'lose', label: 'Lose weight & get lean', icon: '📉', color: '#22c55e' },
-  { id: 'build', label: 'Build muscle', icon: '💪', color: '#f97316' },
-  { id: 'recomp', label: 'Full body recomposition', icon: '⚡', color: '#818cf8' },
-  { id: 'endurance', label: 'Endurance & fitness', icon: '🏃', color: '#3b82f6' },
-  { id: 'maintain', label: 'Maintain current shape', icon: '✅', color: '#14b8a6' },
-]
+const inputCls =
+  'w-full bg-bg border border-border rounded-lg px-3.5 py-2.5 text-[15px] text-text outline-none focus:border-brand placeholder:text-muted'
+
+const primaryBtnCls =
+  'inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-brand text-black text-[14px] font-semibold hover:bg-brand-strong disabled:opacity-40 disabled:cursor-not-allowed transition-colors'
+
+const ghostBtnCls =
+  'inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-surface-2 border border-border text-[14px] text-muted hover:text-text transition-colors'
+
+interface AnchorDraft {
+  name: string
+  category: string
+}
 
 export default function Onboarding({
   onComplete,
 }: {
-  onComplete: (data: OnboardingPayload) => void
+  onComplete: (data: OnboardingPayload) => Promise<void>
 }) {
   const [step, setStep] = useState(0)
-  const [data, setData] = useState<OnboardingPayload>({
-    name: '',
-    focusAreas: [],
-    selectedHabits: [],
-    dsaTarget: '',
-    fitnessGoal: '',
-    currentWeight: '',
-    targetWeight: '',
-    monthlyIncome: '',
-    wakeTime: '5:30',
-    partnerEmail: '',
-    habitData: [],
-  })
+  const [name, setName] = useState('')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [anchors, setAnchors] = useState<AnchorDraft[]>([
+    { name: '', category: '' },
+    { name: '', category: '' },
+    { name: '', category: '' },
+  ])
+  const [roadmapName, setRoadmapName] = useState('')
+  const [roadmapTarget, setRoadmapTarget] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
-  const STEPS = [
-    { id: 'welcome', title: 'Welcome' },
-    { id: 'focus', title: 'Focus Areas' },
-    { id: 'goals', title: 'Goal Details' },
-    { id: 'schedule', title: 'Your Schedule' },
-    { id: 'partner', title: 'Accountability' },
-    { id: 'done', title: 'Ready!' },
-  ]
-
-  const focusAreas = [
-    { id: 'dsa', label: 'Interview Prep', icon: '💻', color: '#3b82f6' },
-    { id: 'fitness', label: 'Fitness & Health', icon: '💪', color: '#f97316' },
-    { id: 'mindset', label: 'Mindset & Morning Routine', icon: '🧘', color: '#a855f7' },
-    { id: 'startup', label: 'Startup / Side Project', icon: '🚀', color: '#f59e0b' },
-    { id: 'selfcare', label: 'Self-Care & Lifestyle', icon: '✨', color: '#14b8a6' },
-  ]
-
-  function toggleFocus(id: string) {
-    setData((d) => ({
-      ...d,
-      focusAreas: d.focusAreas.includes(id)
-        ? d.focusAreas.filter((x) => x !== id)
-        : [...d.focusAreas, id],
-    }))
-  }
-
-  function handleComplete() {
-    // Habits are seeded manually via the Habits tab — onboarding only captures
-    // name / focus / goals / wake time / partner email.
-    onComplete(data)
-  }
-
-  const inp = (field: keyof OnboardingPayload, placeholder: string, type: string = 'text') => (
-    <input
-      type={type}
-      value={(data[field] as string) ?? ''}
-      onChange={(e) => setData((d) => ({ ...d, [field]: e.target.value }))}
-      placeholder={placeholder}
-      style={{
-        background: '#0f0f18',
-        border: '1px solid #2a2a3a',
-        borderRadius: 8,
-        color: '#e8e6e1',
-        padding: '10px 14px',
-        fontSize: 13,
-        outline: 'none',
-        width: '100%',
-      }}
-    />
+  const usableCategories = useMemo(
+    () => (selectedCategories.length > 0 ? selectedCategories : CATEGORIES),
+    [selectedCategories]
   )
 
+  const filledAnchors = anchors.filter((a) => a.name.trim().length > 0)
+  const canSubmit = name.trim().length > 0
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    )
+  }
+
+  const addAnchor = () => {
+    if (anchors.length >= 5) return
+    setAnchors((prev) => [...prev, { name: '', category: '' }])
+  }
+  const removeAnchor = (i: number) => {
+    setAnchors((prev) => prev.filter((_, j) => j !== i))
+  }
+  const updateAnchor = (i: number, patch: Partial<AnchorDraft>) => {
+    setAnchors((prev) => prev.map((a, j) => (j === i ? { ...a, ...patch } : a)))
+  }
+
+  const handleSubmit = async () => {
+    if (submitting) return
+    setSubmitting(true)
+    try {
+      await onComplete({
+        name: name.trim() || 'You',
+        selectedCategories,
+        anchorHabits: filledAnchors.map((a) => ({
+          name: a.name.trim(),
+          category: a.category || 'Life',
+        })),
+        roadmap: roadmapName.trim()
+          ? { name: roadmapName.trim(), targetLabel: roadmapTarget.trim() || undefined }
+          : undefined,
+      })
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const skipAll = () => {
+    void handleSubmit()
+  }
+
+  const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1))
+  const back = () => setStep((s) => Math.max(0, s - 1))
+
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#0a0a0f',
-        color: '#e8e6e1',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-      }}
-    >
-      <div style={{ width: '100%', maxWidth: 520 }}>
-        {/* Progress bar */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div style={{ fontSize: 11, color: '#555' }}>
+    <div className="min-h-screen bg-bg text-text font-sans flex items-center justify-center p-6">
+      <div className="w-full max-w-xl">
+        {/* Progress */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-2 text-[12px] text-muted font-medium">
+            <span>
               Step {step + 1} of {STEPS.length}
-            </div>
-            <div style={{ fontSize: 11, color: '#555' }}>{STEPS[step].title}</div>
+            </span>
+            <button
+              type="button"
+              onClick={skipAll}
+              className="text-muted hover:text-text underline-offset-2 hover:underline"
+            >
+              Skip and finish
+            </button>
           </div>
-          <div style={{ height: 3, background: '#1a1a2a', borderRadius: 2, overflow: 'hidden' }}>
+          <div className="h-1 rounded-full bg-surface-2 overflow-hidden">
             <div
-              style={{
-                height: '100%',
-                background: 'linear-gradient(90deg,#3b82f6,#818cf8)',
-                borderRadius: 2,
-                width: `${(step / (STEPS.length - 1)) * 100}%`,
-                transition: 'width 0.4s ease',
-              }}
-            ></div>
+              className="h-full bg-brand transition-[width] duration-300"
+              style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
+            />
           </div>
         </div>
 
-        {/* Step 0: Welcome */}
+        {/* Step 0 — Name */}
         {step === 0 && (
-          <div>
-            <div style={{ textAlign: 'center', marginBottom: 32 }}>
-              <div
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 14,
-                  background: 'linear-gradient(135deg,#3b82f6,#818cf8)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 28,
-                  margin: '0 auto 16px',
-                }}
-              >
-                ◈
-              </div>
-              <div style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>
-                Welcome to Life OS
-              </div>
-              <div style={{ fontSize: 13, color: '#666', lineHeight: 1.7 }}>
-                Let's set up your personal system in under a minute. We'll capture your name, focus
-                areas, and goal details — you can add habits from the Habits tab afterwards.
-              </div>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: '#555',
-                  letterSpacing: 2,
-                  textTransform: 'uppercase',
-                  marginBottom: 6,
-                }}
-              >
+          <section>
+            <h1 className="text-[28px] font-semibold text-text leading-tight">
+              Set up Life OS
+            </h1>
+            <p className="text-[15px] text-muted mt-2 leading-relaxed">
+              Habits, goals, and weekly reviews in one place. Three short steps —
+              all skippable.
+            </p>
+            <div className="mt-8">
+              <label className="text-[12px] font-semibold tracking-[0.14em] uppercase text-muted">
                 What should we call you?
-              </div>
-              {inp('name', 'Your first name')}
+              </label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="First name"
+                autoFocus
+                className={inputCls + ' mt-2'}
+              />
             </div>
-            <button
-              onClick={() => data.name.trim() && setStep(1)}
-              style={{
-                background: '#3b82f6',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 8,
-                padding: '12px',
-                width: '100%',
-                fontSize: 14,
-                cursor: 'pointer',
-                opacity: data.name.trim() ? 1 : 0.4,
-              }}
-            >
-              Let's build your system →
-            </button>
-          </div>
+            <div className="flex justify-end mt-8">
+              <button type="button" onClick={next} className={primaryBtnCls}>
+                Continue
+              </button>
+            </div>
+          </section>
         )}
 
-        {/* Step 1: Focus Areas */}
+        {/* Step 1 — Categories */}
         {step === 1 && (
-          <div>
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
-                Hey {data.name}! What are you working on?
-              </div>
-              <div style={{ fontSize: 12, color: '#666' }}>
-                Select all that apply. You can change these later.
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-              {focusAreas.map((f) => {
-                const active = data.focusAreas.includes(f.id)
+          <section>
+            <h1 className="text-[28px] font-semibold text-text leading-tight">
+              Which areas matter to you right now?
+            </h1>
+            <p className="text-[15px] text-muted mt-2 leading-relaxed">
+              Pick the ones you want to track. Categories color your habits.
+              They don't create anything by themselves — you fill in the
+              specifics next.
+            </p>
+            <div className="grid grid-cols-2 gap-2 mt-8">
+              {CATEGORIES.map((cat) => {
+                const active = selectedCategories.includes(cat)
+                const color = CAT_COLORS[cat]
                 return (
-                  <div
-                    key={f.id}
-                    onClick={() => toggleFocus(f.id)}
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => toggleCategory(cat)}
+                    className="text-left rounded-xl border px-4 py-3 transition-colors"
                     style={{
-                      padding: '14px 16px',
-                      borderRadius: 10,
-                      border: '1px solid ' + (active ? f.color + '66' : '#1e1e2e'),
-                      background: active ? f.color + '11' : '#13131a',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      transition: 'all 0.15s',
+                      background: active ? color + '14' : 'var(--color-surface)',
+                      borderColor: active ? color + '66' : 'var(--color-border)',
                     }}
                   >
-                    <span style={{ fontSize: 20 }}>{f.icon}</span>
-                    <div style={{ flex: 1 }}>
-                      <div
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className="text-[14px] font-medium"
+                        style={{ color: active ? color : 'var(--color-text)' }}
+                      >
+                        {cat}
+                      </span>
+                      <span
+                        className="w-4 h-4 rounded border flex items-center justify-center text-[10px]"
                         style={{
-                          fontSize: 13,
-                          fontWeight: active ? 600 : 400,
-                          color: active ? '#e8e6e1' : '#c4c0d8',
+                          borderColor: active ? color : 'var(--color-border)',
+                          background: active ? color : 'transparent',
+                          color: active ? '#000' : 'transparent',
                         }}
                       >
-                        {f.label}
-                      </div>
+                        ✓
+                      </span>
                     </div>
-                    <div
-                      style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: 4,
-                        border: '1px solid ' + (active ? f.color : '#2a2a3a'),
-                        background: active ? f.color : 'transparent',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 10,
-                        color: '#fff',
-                      }}
-                    >
-                      {active ? '✓' : ''}
-                    </div>
-                  </div>
+                  </button>
                 )
               })}
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setStep(0)}
-                style={{
-                  background: '#1a1a2a',
-                  color: '#888',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 1,
-                  cursor: 'pointer',
-                }}
-              >
+            <div className="flex items-center justify-between mt-8">
+              <button type="button" onClick={back} className={ghostBtnCls}>
                 Back
               </button>
-              <button
-                onClick={() => data.focusAreas.length > 0 && setStep(2)}
-                style={{
-                  background: '#3b82f6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 2,
-                  cursor: 'pointer',
-                  opacity: data.focusAreas.length > 0 ? 1 : 0.4,
-                }}
-              >
-                Next: Goal details →
+              <button type="button" onClick={next} className={primaryBtnCls}>
+                Continue
               </button>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Step 2: Goal Details */}
+        {/* Step 2 — Anchors */}
         {step === 2 && (
-          <div>
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
-                Let's get specific
-              </div>
-              <div style={{ fontSize: 12, color: '#666' }}>
-                Only fill in what's relevant to you.
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {data.focusAreas.includes('dsa') && (
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: '#3b82f6',
-                      letterSpacing: 1,
-                      textTransform: 'uppercase',
-                      marginBottom: 8,
-                      fontWeight: 700,
-                    }}
-                  >
-                    💻 Interview Target
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    {DSA_TARGETS.map((t) => (
-                      <div
-                        key={t.id}
-                        onClick={() => setData((d) => ({ ...d, dsaTarget: t.id }))}
-                        style={{
-                          padding: '10px 12px',
-                          borderRadius: 8,
-                          border:
-                            '1px solid ' + (data.dsaTarget === t.id ? t.color + '66' : '#1a1a2a'),
-                          background: data.dsaTarget === t.id ? t.color + '11' : '#0f0f18',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: data.dsaTarget === t.id ? '#e8e6e1' : '#888',
-                          }}
-                        >
-                          {t.label}
-                        </div>
-                        <div style={{ fontSize: 9, color: '#555', marginTop: 2 }}>{t.sub}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {data.focusAreas.includes('fitness') && (
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: '#f97316',
-                      letterSpacing: 1,
-                      textTransform: 'uppercase',
-                      marginBottom: 8,
-                      fontWeight: 700,
-                    }}
-                  >
-                    💪 Fitness Goal
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {FITNESS_GOALS.map((g) => (
-                      <div
-                        key={g.id}
-                        onClick={() => setData((d) => ({ ...d, fitnessGoal: g.id }))}
-                        style={{
-                          padding: '9px 12px',
-                          borderRadius: 8,
-                          border:
-                            '1px solid ' + (data.fitnessGoal === g.id ? g.color + '66' : '#1a1a2a'),
-                          background: data.fitnessGoal === g.id ? g.color + '11' : '#0f0f18',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          gap: 10,
-                          alignItems: 'center',
-                        }}
-                      >
-                        <span>{g.icon}</span>
-                        <span
-                          style={{
-                            fontSize: 12,
-                            color: data.fitnessGoal === g.id ? '#e8e6e1' : '#888',
-                          }}
-                        >
-                          {g.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: 8,
-                      marginTop: 10,
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{ fontSize: 9, color: '#555', letterSpacing: 1, marginBottom: 5 }}
-                      >
-                        CURRENT WEIGHT (KG)
-                      </div>
-                      {inp('currentWeight', 'e.g. 85', 'number')}
-                    </div>
-                    <div>
-                      <div
-                        style={{ fontSize: 9, color: '#555', letterSpacing: 1, marginBottom: 5 }}
-                      >
-                        TARGET WEIGHT (KG)
-                      </div>
-                      {inp('targetWeight', 'e.g. 72', 'number')}
-                    </div>
-                  </div>
-                </div>
-              )}
-              {(data.focusAreas.includes('startup') || data.focusAreas.includes('dsa')) && (
-                <div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: '#f59e0b',
-                      letterSpacing: 1,
-                      textTransform: 'uppercase',
-                      marginBottom: 8,
-                      fontWeight: 700,
-                    }}
-                  >
-                    💰 Monthly Income (optional)
-                  </div>
-                  {inp('monthlyIncome', 'Helps with finance planning')}
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-              <button
-                onClick={() => setStep(1)}
-                style={{
-                  background: '#1a1a2a',
-                  color: '#888',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 1,
-                  cursor: 'pointer',
-                }}
-              >
-                Back
-              </button>
-              <button
-                onClick={() => setStep(3)}
-                style={{
-                  background: '#3b82f6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 2,
-                  cursor: 'pointer',
-                }}
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Schedule */}
-        {step === 3 && (
-          <div>
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
-                When do you start your day?
-              </div>
-              <div style={{ fontSize: 12, color: '#666' }}>
-                This shapes your morning routine block.
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-              {[
-                { t: '4:30', l: '4:30 AM — Extreme early bird' },
-                { t: '5:00', l: '5:00 AM — Early bird' },
-                { t: '5:30', l: '5:30 AM — Early riser' },
-                { t: '6:00', l: '6:00 AM — Morning person' },
-                { t: '6:30', l: '6:30 AM — Relaxed morning' },
-                { t: '7:00', l: '7:00 AM — Standard morning' },
-              ].map((w) => (
+          <section>
+            <h1 className="text-[28px] font-semibold text-text leading-tight">
+              Add 3–5 anchor habits
+            </h1>
+            <p className="text-[15px] text-muted mt-2 leading-relaxed">
+              Anchors define a good day. Type them in your own words. You can
+              edit, add, or remove them later.
+            </p>
+            <div className="flex flex-col gap-2 mt-8">
+              {anchors.map((a, i) => (
                 <div
-                  key={w.t}
-                  onClick={() => setData((d) => ({ ...d, wakeTime: w.t }))}
-                  style={{
-                    padding: '12px 16px',
-                    borderRadius: 9,
-                    border: '1px solid ' + (data.wakeTime === w.t ? '#3b82f666' : '#1a1a2a'),
-                    background: data.wakeTime === w.t ? '#0a1428' : '#0f0f18',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
+                  key={i}
+                  className="flex items-center gap-2 bg-surface border border-border rounded-xl pl-3 pr-2 py-2"
                 >
-                  <span style={{ fontSize: 13, color: data.wakeTime === w.t ? '#e8e6e1' : '#888' }}>
-                    {w.l}
-                  </span>
-                  {data.wakeTime === w.t && (
-                    <span style={{ color: '#3b82f6', fontSize: 12 }}>✓</span>
+                  <input
+                    value={a.name}
+                    onChange={(e) => updateAnchor(i, { name: e.target.value })}
+                    placeholder={`Habit ${i + 1}`}
+                    className="flex-1 bg-transparent border-0 px-1 py-1.5 text-[15px] text-text outline-none placeholder:text-muted"
+                  />
+                  <select
+                    value={a.category}
+                    onChange={(e) => updateAnchor(i, { category: e.target.value })}
+                    className="bg-bg border border-border rounded-md px-2 py-1.5 text-[13px] text-muted focus:text-text outline-none"
+                  >
+                    <option value="">Category</option>
+                    {usableCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  {anchors.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeAnchor(i)}
+                      className="text-muted hover:text-danger p-1"
+                      aria-label="Remove anchor"
+                    >
+                      <Trash2 size={14} aria-hidden />
+                    </button>
                   )}
                 </div>
               ))}
+              {anchors.length < 5 && (
+                <button
+                  type="button"
+                  onClick={addAnchor}
+                  className="self-start inline-flex items-center gap-1.5 text-[13px] text-muted hover:text-text mt-1"
+                >
+                  <Plus size={14} aria-hidden /> Add another
+                </button>
+              )}
+              {filledAnchors.length > 3 && filledAnchors.length <= 5 && (
+                <p className="text-[12px] text-warn mt-2">
+                  Anchors lose power past 3. Consider keeping it tight.
+                </p>
+              )}
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setStep(2)}
-                style={{
-                  background: '#1a1a2a',
-                  color: '#888',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 1,
-                  cursor: 'pointer',
-                }}
-              >
+            <div className="flex items-center justify-between mt-8">
+              <button type="button" onClick={back} className={ghostBtnCls}>
                 Back
               </button>
-              <button
-                onClick={() => setStep(4)}
-                style={{
-                  background: '#3b82f6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 2,
-                  cursor: 'pointer',
-                }}
-              >
-                Next →
+              <button type="button" onClick={next} className={primaryBtnCls}>
+                Continue
               </button>
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Step 4: Partner */}
-        {step === 4 && (
-          <div>
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>
-                Got an accountability partner?
+        {/* Step 3 — Big goal */}
+        {step === 3 && (
+          <section>
+            <h1 className="text-[28px] font-semibold text-text leading-tight">
+              One big goal? (optional)
+            </h1>
+            <p className="text-[15px] text-muted mt-2 leading-relaxed">
+              Got a multi-month goal you want to break into phases? We'll
+              create an empty roadmap. You can fill in the months and topics
+              later. Skip if you don't have one yet.
+            </p>
+            <div className="flex flex-col gap-3 mt-8">
+              <div>
+                <label className="text-[12px] font-semibold tracking-[0.14em] uppercase text-muted">
+                  Goal name
+                </label>
+                <input
+                  value={roadmapName}
+                  onChange={(e) => setRoadmapName(e.target.value)}
+                  placeholder="What's the goal?"
+                  className={inputCls + ' mt-2'}
+                />
               </div>
-              <div style={{ fontSize: 12, color: '#666', lineHeight: 1.7 }}>
-                If they've already signed up, enter their email to link. You'll see each other's
-                habits in real time and can send reactions. You can also do this later.
-              </div>
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <div
-                style={{
-                  fontSize: 9,
-                  color: '#555',
-                  letterSpacing: 2,
-                  textTransform: 'uppercase',
-                  marginBottom: 6,
-                }}
-              >
-                Partner's Email (optional)
-              </div>
-              {inp('partnerEmail', 'partner@email.com', 'email')}
-            </div>
-            <div
-              style={{
-                padding: '12px 14px',
-                borderRadius: 9,
-                background: '#0a1408',
-                border: '1px solid #1a2a18',
-                marginBottom: 20,
-              }}
-            >
-              <div style={{ fontSize: 11, color: '#22c55e', marginBottom: 4 }}>
-                🤝 What you get with a partner
-              </div>
-              <div style={{ fontSize: 10, color: '#888', lineHeight: 1.6 }}>
-                Real-time habit visibility · 🔥 fire and 👀 nudge reactions · Streak competitions ·
-                Private messaging
+              <div>
+                <label className="text-[12px] font-semibold tracking-[0.14em] uppercase text-muted">
+                  Target (optional)
+                </label>
+                <input
+                  value={roadmapTarget}
+                  onChange={(e) => setRoadmapTarget(e.target.value)}
+                  placeholder="e.g. Oct 2026"
+                  className={inputCls + ' mt-2'}
+                />
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setStep(3)}
-                style={{
-                  background: '#1a1a2a',
-                  color: '#888',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 1,
-                  cursor: 'pointer',
-                }}
-              >
+            <div className="flex items-center justify-between mt-8 gap-2">
+              <button type="button" onClick={back} className={ghostBtnCls}>
                 Back
               </button>
-              <button
-                onClick={() => setStep(5)}
-                style={{
-                  background: '#3b82f6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '10px',
-                  flex: 2,
-                  cursor: 'pointer',
-                }}
-              >
-                {data.partnerEmail ? 'Link partner & finish →' : 'Skip & finish →'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 5: Done */}
-        {step === 5 && (
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>🎉</div>
-            <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 10 }}>
-              You're all set, {data.name}!
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                color: '#666',
-                lineHeight: 1.7,
-                marginBottom: 28,
-                maxWidth: 380,
-                margin: '0 auto 28px',
-              }}
-            >
-              Your profile is ready. Head over to the Habits tab to add your first habits. Wake time
-              set to {data.wakeTime} AM.
-              {data.partnerEmail ? " We'll link your partner as soon as they confirm." : ''}
-            </div>
-            <div
-              style={{
-                background: '#13131a',
-                border: '1px solid #1e1e2e',
-                borderRadius: 12,
-                padding: 20,
-                marginBottom: 24,
-                textAlign: 'left',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 10,
-                  color: '#555',
-                  letterSpacing: 2,
-                  textTransform: 'uppercase',
-                  marginBottom: 12,
-                }}
-              >
-                Your setup
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRoadmapName('')
+                    setRoadmapTarget('')
+                    void handleSubmit()
+                  }}
+                  className={ghostBtnCls}
+                  disabled={submitting}
+                >
+                  <X size={14} aria-hidden className="mr-1" />
+                  Skip
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={!canSubmit || submitting}
+                  className={primaryBtnCls}
+                >
+                  {submitting ? 'Saving…' : 'Finish'}
+                </button>
               </div>
-              {[
-                { l: 'Focus areas', v: data.focusAreas.length + ' selected' },
-                { l: 'Wake time', v: data.wakeTime + ' AM' },
-                data.dsaTarget && {
-                  l: 'Interview target',
-                  v: DSA_TARGETS.find((t) => t.id === data.dsaTarget)?.label || '',
-                },
-                data.fitnessGoal && {
-                  l: 'Fitness goal',
-                  v: FITNESS_GOALS.find((g) => g.id === data.fitnessGoal)?.label || '',
-                },
-                data.partnerEmail && { l: 'Partner', v: data.partnerEmail },
-              ]
-                .filter((r): r is { l: string; v: string } => Boolean(r))
-                .map((r, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      padding: '6px 0',
-                      borderBottom: '1px solid #111',
-                    }}
-                  >
-                    <span style={{ fontSize: 11, color: '#666' }}>{r.l}</span>
-                    <span style={{ fontSize: 11, color: '#c4c0d8', fontWeight: 600 }}>{r.v}</span>
-                  </div>
-                ))}
             </div>
-            <button
-              onClick={handleComplete}
-              style={{
-                background: 'linear-gradient(135deg,#3b82f6,#818cf8)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 10,
-                padding: '14px 40px',
-                fontSize: 15,
-                cursor: 'pointer',
-                width: '100%',
-                fontWeight: 600,
-              }}
-            >
-              Open my Life OS →
-            </button>
-          </div>
+          </section>
         )}
       </div>
     </div>

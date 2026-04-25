@@ -201,6 +201,107 @@ export function StatCard({ label, value, color, hint }: StatCardProps) {
   )
 }
 
+// ─── Sparkline ───────────────────────────────────────────────────────────────
+// Tiny SVG line chart for inline trends (in stat cards, list rows, etc.).
+// `values` is normalized 0–1 not required — we min/max-fit internally.
+interface SparklineProps {
+  values: number[]
+  width?: number
+  height?: number
+  color?: string
+}
+
+export function Sparkline({
+  values,
+  width = 80,
+  height = 24,
+  color = '#22c55e',
+}: SparklineProps) {
+  if (!values.length) return null
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const span = max - min || 1
+  const stepX = width / Math.max(1, values.length - 1)
+  const points = values
+    .map((v, i) => {
+      const x = i * stepX
+      const y = height - ((v - min) / span) * height
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden>
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  )
+}
+
+// ─── Trend chip — "▲ +6%" / "▼ -3%" colored ─────────────────────────────────
+interface TrendChipProps {
+  delta: number // signed percentage in 0–1 scale (0.06 = +6%); display as %.
+  format?: 'percent' | 'absolute'
+  suffix?: string
+}
+
+export function TrendChip({ delta, format = 'percent', suffix }: TrendChipProps) {
+  const positive = delta > 0
+  const negative = delta < 0
+  const arrow = positive ? '▲' : negative ? '▼' : '·'
+  const color = positive
+    ? 'var(--color-success)'
+    : negative
+      ? 'var(--color-danger)'
+      : 'var(--color-muted)'
+  const text =
+    format === 'percent'
+      ? `${positive ? '+' : ''}${Math.round(delta * 100)}%`
+      : `${positive ? '+' : ''}${delta}${suffix ?? ''}`
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-[12px] font-semibold tabular-nums"
+      style={{ color }}
+    >
+      <span>{arrow}</span>
+      <span>{text}</span>
+    </span>
+  )
+}
+
+// ─── Empty state — icon + headline + body + CTA ─────────────────────────────
+interface EmptyStateProps {
+  icon: ReactNode
+  title: ReactNode
+  body?: ReactNode
+  cta?: ReactNode
+  className?: string
+}
+
+export function EmptyState({ icon, title, body, cta, className = '' }: EmptyStateProps) {
+  return (
+    <div
+      className={`flex flex-col items-center text-center gap-3 py-12 px-4 ${className}`}
+    >
+      <div className="w-14 h-14 rounded-full bg-brand/15 flex items-center justify-center text-brand">
+        {icon}
+      </div>
+      <div>
+        <div className="text-[16px] font-semibold text-text">{title}</div>
+        {body && (
+          <div className="text-[14px] text-muted mt-1 max-w-sm leading-relaxed">{body}</div>
+        )}
+      </div>
+      {cta && <div className="mt-1">{cta}</div>}
+    </div>
+  )
+}
+
 // ─── Mini heatmap — one cell per habit-day ──────────────────────────────────
 interface MiniHeatmapProps {
   logs: { d: string; s: 'success' | 'fail' | 'skip' | null }[]

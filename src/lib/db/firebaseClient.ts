@@ -37,6 +37,7 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { getFirebaseAuth, getFirestoreDb } from '../firebase'
+import { CAT_COLORS } from '../../data/constants'
 import type {
   ChecklistItem,
   DSAProgress,
@@ -56,10 +57,6 @@ import type {
   Tracker,
 } from '../../types'
 import type { AppSession, DataClient, Unsubscribe } from './types'
-
-function todayStr(): string {
-  return new Date().toISOString().split('T')[0]
-}
 
 function toAppSession(u: User | null): AppSession | null {
   if (!u) return null
@@ -333,18 +330,14 @@ export const firebaseClient: DataClient = {
     return { success: true }
   },
   async completeOnboarding(userId, payload) {
+    // Open-ended onboarding writes:
+    //   - profile: name, onboarded=true, anchor_habits[], default settings
+    //   - habits subcollection: one doc per anchor with chosen category color
+    //   - trackers subcollection: optional empty roadmap if user named one
+    // No partner linking, no goal hardcoding, no fitness seed weight — those
+    // surfaces have their own dedicated forms post-onboarding.
     const db = getFirestoreDb()
-    const {
-      habitData,
-      name,
-      currentWeight,
-      targetWeight,
-      monthlyIncome,
-      wakeTime,
-      dsaTarget,
-      fitnessGoal,
-      partnerEmail,
-    } = payload
+    const { name, selectedCategories, anchorHabits, roadmap } = payload
 
     const batch = writeBatch(db)
     batch.set(
@@ -352,60 +345,42 @@ export const firebaseClient: DataClient = {
       {
         name,
         onboarded: true,
-        onboarding_data: {
-          currentWeight,
-          targetWeight,
-          monthlyIncome,
-          wakeTime,
-          dsaTarget,
-          fitnessGoal,
-        },
+        anchor_habits: anchorHabits.map((h) => h.name),
+        currency: 'USD',
+        weight_unit: 'kg',
+        review_day: 0, // Sunday
+        onboarding_data: { selectedCategories },
       },
       { merge: true }
     )
-    habitData.forEach((h, i) => {
+    const FALLBACK_COLOR = '#94a3b8'
+    const FALLBACK_ICON = '⭐'
+    anchorHabits.forEach((h, i) => {
+      const cat = h.category || 'Life'
       batch.set(doc(db, 'users', userId, 'habits', habitDocId(h.name)), {
         name: h.name,
-        category: h.category,
-        color: h.color,
-        icon: h.icon,
+        category: cat,
+        color: CAT_COLORS[cat] || FALLBACK_COLOR,
+        icon: FALLBACK_ICON,
         priority: i + 1,
-        note: h.note,
         active: true,
         created_at: serverTimestamp(),
       })
     })
-    await batch.commit()
-
-    if (currentWeight) {
-      await addDoc(collection(db, 'users', userId, 'fitness_logs'), {
-        user_id: userId,
-        date: todayStr(),
-        weight: parseFloat(currentWeight),
-        calories_eaten: 0,
-        calories_burned: 0,
-        note: 'Starting weight',
+    if (roadmap?.name?.trim()) {
+      // addDoc-via-batch isn't supported; we use a deterministic doc ref.
+      const ref = doc(collection(db, 'users', userId, 'trackers'))
+      batch.set(ref, {
+        archetype: 'ordered_roadmap',
+        name: roadmap.name.trim(),
+        targetLabel: roadmap.targetLabel?.trim() || null,
+        order: 0,
+        months: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       })
     }
-    if (partnerEmail) {
-      const snap = await getDocs(
-        query(collection(db, 'users'), where('email', '==', partnerEmail), limit(1))
-      )
-      if (!snap.empty) {
-        const partner = snap.docs[0]
-        const linkBatch = writeBatch(db)
-        linkBatch.update(doc(db, 'users', userId), {
-          partner_id: partner.id,
-          partner_email: partnerEmail,
-          partner_status: 'linked',
-        })
-        linkBatch.update(doc(db, 'users', partner.id), {
-          partner_id: userId,
-          partner_status: 'linked',
-        })
-        await linkBatch.commit()
-      }
-    }
+    await batch.commit()
   },
 
   // ── Trackers (P2.5) ───────────────────────────────────────────────────────

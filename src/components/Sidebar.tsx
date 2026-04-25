@@ -1,6 +1,5 @@
 import { NavLink } from 'react-router-dom'
 import {
-  Home,
   Sun,
   CheckSquare,
   BarChart3,
@@ -13,6 +12,8 @@ import {
   Download,
   LogOut,
   BookText,
+  CalendarCheck,
+  Settings as SettingsIcon,
   type LucideIcon,
 } from 'lucide-react'
 import { useAuth } from '../stores/AuthContext'
@@ -32,41 +33,44 @@ interface NavGroup {
 
 const GROUPS: readonly NavGroup[] = [
   {
-    label: 'Main',
+    label: 'Daily',
     items: [
-      { label: 'Dashboard', to: '/', Icon: Home, end: true },
-      { label: 'Today', to: '/today', Icon: Sun },
-    ],
-  },
-  {
-    label: 'Build',
-    items: [
-      { label: 'Habits', to: '/habits', Icon: CheckSquare },
-      { label: 'Trackers', to: '/trackers', Icon: BarChart3 },
-      { label: 'Journal', to: '/journal', Icon: BookText },
+      { label: 'Today', to: '/today', Icon: Sun, end: true },
       { label: 'Schedule', to: '/schedule', Icon: Calendar },
     ],
   },
   {
-    label: 'Life',
+    label: 'Weekly',
     items: [
-      { label: 'Finance', to: '/finance', Icon: Wallet },
-      { label: 'Diet', to: '/diet', Icon: Utensils },
-      { label: 'Health', to: '/health', Icon: Heart },
+      { label: 'Review', to: '/review', Icon: CalendarCheck },
+      { label: 'Journal', to: '/journal', Icon: BookText },
     ],
   },
   {
-    label: 'Insights',
+    label: 'Goals',
     items: [
+      { label: 'Trackers', to: '/trackers', Icon: BarChart3 },
+      { label: 'Habits', to: '/habits', Icon: CheckSquare },
       { label: 'Analytics', to: '/analytics', Icon: TrendingUp },
-      { label: 'Accountability', to: '/accountability', Icon: Users },
     ],
+  },
+  {
+    label: 'Life areas',
+    items: [
+      { label: 'Health', to: '/health', Icon: Heart },
+      { label: 'Diet', to: '/diet', Icon: Utensils },
+      { label: 'Finance', to: '/finance', Icon: Wallet },
+    ],
+  },
+  {
+    label: 'Social',
+    items: [{ label: 'Accountability', to: '/accountability', Icon: Users }],
   },
 ]
 
 const navCls = (isActive: boolean) =>
   [
-    'group h-11 px-3 rounded-lg flex items-center gap-3 text-[14px] font-medium transition-colors',
+    'group h-10 px-3 rounded-lg flex items-center gap-3 text-[14px] font-medium transition-colors',
     isActive
       ? 'bg-brand/15 text-brand'
       : 'text-text/80 hover:text-text hover:bg-surface-2',
@@ -98,7 +102,7 @@ export default function Sidebar() {
       <nav className="flex-1 flex flex-col gap-5 overflow-y-auto">
         {GROUPS.map((group) => (
           <div key={group.label} className="flex flex-col gap-0.5">
-            <div className="px-3 mb-1 text-[13px] font-medium text-muted">
+            <div className="px-3 mb-1 text-[12px] font-semibold tracking-[0.14em] uppercase text-muted">
               {group.label}
             </div>
             {group.items.map(({ label, to, Icon, end }) => (
@@ -131,6 +135,23 @@ export default function Sidebar() {
       </nav>
 
       <div className="mt-auto pt-4 border-t border-border flex flex-col gap-0.5">
+        <NavLink
+          to="/settings"
+          className={({ isActive }) => navCls(isActive)}
+          title="Settings"
+        >
+          {({ isActive }) => (
+            <>
+              <SettingsIcon
+                size={18}
+                strokeWidth={2}
+                aria-hidden
+                className={isActive ? 'text-brand shrink-0' : 'text-text/70 shrink-0'}
+              />
+              <span>Settings</span>
+            </>
+          )}
+        </NavLink>
         {canInstall && (
           <button
             type="button"
