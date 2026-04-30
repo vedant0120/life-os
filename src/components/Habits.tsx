@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowLeft, Plus, Star } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Flame, Plus, Star, X } from 'lucide-react'
 import { Card, PageHeader, SectionTitle, ProgressBar, MiniHeatmap } from './ui/primitives'
 import { calcStats } from './shared'
 import { CAT_COLORS, CATEGORIES } from '../data/constants'
@@ -143,11 +143,18 @@ export default function Habits() {
                     : e.s === 'fail'
                       ? 'bg-danger/15 text-danger border-danger/30'
                       : 'bg-warn/15 text-warn border-warn/30'
-                const glyph = e.s === 'success' ? '✓' : e.s === 'fail' ? '✗' : '→'
+                const glyph =
+                  e.s === 'success' ? (
+                    <Check size={10} strokeWidth={3} aria-hidden />
+                  ) : e.s === 'fail' ? (
+                    <X size={10} strokeWidth={3} aria-hidden />
+                  ) : (
+                    <ArrowRight size={10} strokeWidth={3} aria-hidden />
+                  )
                 return (
                   <div
                     key={i}
-                    className={`px-2 py-0.5 rounded text-[10px] font-mono border ${bg}`}
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono border inline-flex items-center gap-1 ${bg}`}
                   >
                     {e.d} {glyph}
                   </div>
@@ -221,8 +228,8 @@ export default function Habits() {
                 <div className="text-[14px] font-bold font-mono" style={{ color: col }}>
                   {rate}%
                 </div>
-                <div className="text-[10px] text-muted">
-                  🔥 {stats?.current || 0}d
+                <div className="text-[10px] text-muted inline-flex items-center gap-1 justify-end">
+                  <Flame size={10} aria-hidden /> {stats?.current || 0}d
                 </div>
               </div>
             </div>

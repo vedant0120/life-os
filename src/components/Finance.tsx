@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
+import Icon from './ui/Icon'
 import { Card, PageHeader, SectionTitle, Pill, ProgressBar } from './ui/primitives'
 import { todayStr } from './shared'
 import {
@@ -213,8 +214,8 @@ export default function Finance() {
             <div className="grid grid-cols-3 gap-2 mt-3">
               {INVEST_BUCKETS.map((b) => (
                 <div key={b.id} className="text-center">
-                  <div className="text-[10px] text-muted truncate">
-                    {b.icon} {b.label}
+                  <div className="text-[10px] text-muted truncate inline-flex items-center gap-1 justify-center">
+                    <Icon name={b.iconName} size={12} /> {b.label}
                   </div>
                   <div
                     className="text-[13px] font-bold font-mono mt-1"
@@ -289,7 +290,7 @@ export default function Finance() {
                   >
                     {EXPENSE_CATS.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.icon} {c.label}
+                        {c.label}
                       </option>
                     ))}
                   </select>
@@ -315,7 +316,7 @@ export default function Finance() {
                   >
                     {INVEST_BUCKETS.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.icon} {b.label}
+                        {b.label}
                       </option>
                     ))}
                   </select>
@@ -376,7 +377,7 @@ export default function Finance() {
                   className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-sm"
                   style={{ background: info.color + '1f', color: info.color }}
                 >
-                  {info.icon}
+                  <Icon name={info.iconName} size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-text truncate">
@@ -423,8 +424,8 @@ export default function Finance() {
             return (
               <Card key={cat.id} style={{ padding: '12px 14px' }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[13px] font-semibold text-text">
-                    {cat.icon} {cat.label}
+                  <span className="text-[13px] font-semibold text-text inline-flex items-center gap-1.5">
+                    <Icon name={cat.iconName} size={14} /> {cat.label}
                   </span>
                   <div className="text-[12px] font-mono tabular-nums">
                     <span style={{ color: over ? 'var(--color-danger)' : 'var(--color-text)' }}>
@@ -470,8 +471,8 @@ export default function Finance() {
               <Card key={b.id} accent={b.color}>
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="text-[14px] font-bold text-text">
-                      {b.icon} {b.label}
+                    <div className="text-[14px] font-bold text-text inline-flex items-center gap-1.5">
+                      <Icon name={b.iconName} size={14} /> {b.label}
                     </div>
                     {goal && (
                       <div className="text-[11px] text-muted mt-1">{goal.label}</div>

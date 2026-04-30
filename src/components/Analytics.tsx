@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { BarChart3, Flame } from 'lucide-react'
 import { Card, PageHeader, SectionTitle, ProgressBar } from './ui/primitives'
 import { calcStats } from './shared'
 import { useData } from '../stores/DataContext'
@@ -44,7 +45,7 @@ export default function Analytics() {
   if (!habits.length) {
     return (
       <Card className="flex flex-col items-center text-center gap-3 py-16">
-        <div className="text-4xl">📊</div>
+        <BarChart3 size={40} className="text-muted" aria-hidden />
         <div className="text-sm font-bold text-text">No data yet</div>
         <div className="text-xs text-muted max-w-xs">
           Add habits and log a few days to see your 30-day completion chart and rankings here.
@@ -114,8 +115,8 @@ export default function Analytics() {
                   #{i + 1}
                 </span>
                 <span className="flex-1 text-[13px] text-text truncate">{h.name}</span>
-                <span className="text-[11px] text-muted tabular-nums">
-                  🔥 {h.streak}d
+                <span className="text-[11px] text-muted tabular-nums inline-flex items-center gap-1">
+                  <Flame size={11} aria-hidden /> {h.streak}d
                 </span>
                 <span
                   className="text-[13px] font-bold font-mono w-12 text-right"

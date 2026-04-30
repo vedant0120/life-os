@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { Check } from 'lucide-react'
 import { useAuth } from '../stores/AuthContext'
 
 interface AuthProps {
@@ -98,7 +99,9 @@ export default function Auth({ initialMode = 'login', onBack: _onBack }: AuthPro
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: 24, marginBottom: 8 }}>✅</div>
+            <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}>
+              <Check size={24} color="#22c55e" strokeWidth={3} aria-hidden />
+            </div>
             <div style={{ fontSize: 14, color: '#22c55e', marginBottom: 8 }}>Account created!</div>
             <div style={{ fontSize: 12, color: '#888' }}>
               Check your email to confirm, then log in.

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Check, ChevronRight, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { Card, PageHeader, SectionTitle, ProgressBar, Ring } from './ui/primitives'
 import { useData } from '../stores/DataContext'
 import type { OrderedRoadmapTracker, RoadmapMonth, RoadmapTopic, Tracker } from '../types'
@@ -339,8 +339,9 @@ function RoadmapDetail({
                   type="button"
                   onClick={() => void renameMonth(mi)}
                   className="px-3 rounded-md bg-brand text-black text-xs font-bold"
+                  aria-label="Save month"
                 >
-                  ✓
+                  <Check size={12} aria-hidden />
                 </button>
                 <button
                   type="button"
@@ -349,8 +350,9 @@ function RoadmapDetail({
                     setEditMonthLabel('')
                   }}
                   className="px-3 rounded-md bg-surface-2 border border-border text-xs text-muted"
+                  aria-label="Cancel"
                 >
-                  ✕
+                  <X size={12} aria-hidden />
                 </button>
               </div>
             ) : (
@@ -422,8 +424,9 @@ function RoadmapDetail({
                     type="button"
                     onClick={() => void renameTopic()}
                     className="px-3 rounded-md bg-brand text-black text-xs font-bold"
+                    aria-label="Save topic"
                   >
-                    ✓
+                    <Check size={12} aria-hidden />
                   </button>
                   <button
                     type="button"
@@ -432,8 +435,9 @@ function RoadmapDetail({
                       setEditTopicLabel('')
                     }}
                     className="px-3 rounded-md bg-surface-2 border border-border text-xs text-muted"
+                    aria-label="Cancel"
                   >
-                    ✕
+                    <X size={12} aria-hidden />
                   </button>
                 </div>
               ) : (
@@ -494,8 +498,9 @@ function RoadmapDetail({
                   setNewTopic('')
                 }}
                 className="px-3 rounded-md bg-surface-2 border border-border text-xs text-muted"
+                aria-label="Cancel"
               >
-                ✕
+                <X size={12} aria-hidden />
               </button>
             </div>
           )}

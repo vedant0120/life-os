@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 import { db } from '../lib/db'
 import { useAuth } from './AuthContext'
 import type {
-  DSAProgress,
   DietState,
   FinanceSettings,
   FinanceTransaction,
@@ -18,7 +17,6 @@ import type {
   Reaction,
   ScheduleItem,
   ScheduleState,
-  StartupProgress,
   Status,
   Tracker,
 } from '../types'
@@ -31,8 +29,6 @@ function todayStr(): string {
 export interface DataState {
   habits: Habit[]
   logs: HabitLog[]
-  dsaProg: DSAProgress
-  startupProg: StartupProgress
   fitLogs: FitnessLog[]
   partner: Profile | null
   partnerHabits: Habit[]
@@ -54,10 +50,6 @@ type DataAction =
   | { type: 'ADD_HABIT'; name: Habit }
   | { type: 'SET_LOGS'; logs: HabitLog[] }
   | { type: 'UPSERT_LOG'; log: HabitLog }
-  | { type: 'SET_DSA'; dsa: DSAProgress }
-  | { type: 'TOGGLE_DSA'; key: string; value: boolean }
-  | { type: 'SET_STARTUP'; startup: StartupProgress }
-  | { type: 'TOGGLE_STARTUP'; key: string; value: boolean }
   | { type: 'SET_FIT_LOGS'; fitLogs: FitnessLog[] }
   | { type: 'ADD_FIT_LOG'; log: FitnessLog }
   | { type: 'SET_PARTNER'; partner: Profile | null }
@@ -80,8 +72,6 @@ type DataAction =
 const initialState: DataState = {
   habits: [],
   logs: [],
-  dsaProg: {},
-  startupProg: {},
   fitLogs: [],
   partner: null,
   partnerHabits: [],
@@ -110,14 +100,6 @@ function reducer(state: DataState, action: DataAction): DataState {
       const f = state.logs.filter((l) => !(l.h === action.log.h && l.d === action.log.d))
       return { ...state, logs: [action.log, ...f] }
     }
-    case 'SET_DSA':
-      return { ...state, dsaProg: action.dsa }
-    case 'TOGGLE_DSA':
-      return { ...state, dsaProg: { ...state.dsaProg, [action.key]: action.value } }
-    case 'SET_STARTUP':
-      return { ...state, startupProg: action.startup }
-    case 'TOGGLE_STARTUP':
-      return { ...state, startupProg: { ...state.startupProg, [action.key]: action.value } }
     case 'SET_FIT_LOGS':
       return { ...state, fitLogs: action.fitLogs }
     case 'ADD_FIT_LOG':
@@ -163,8 +145,6 @@ function reducer(state: DataState, action: DataAction): DataState {
 interface DataContextValue extends DataState {
   logHabit: (habitName: string, status: Exclude<Status, null>) => Promise<void>
   addHabit: (name: string, category: string, color: string, icon: string) => Promise<void>
-  toggleDSA: (key: string) => Promise<void>
-  toggleStartup: (key: string) => Promise<void>
   addFitnessLog: (entry: Partial<FitnessLog>) => Promise<void>
   sendReaction: (type: Reaction['type'], habitName: string | null, message: string) => Promise<void>
   linkPartner: (partnerEmail: string) => Promise<{ error?: string; success?: boolean }>
@@ -239,15 +219,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         dispatch({ type: 'SET_HABITS', habits })
 
-        const [logs, dsa, startup, fit] = await Promise.all([
+        const [logs, fit] = await Promise.all([
           db.getLogs(userId),
-          db.getDSAProgress(userId),
-          db.getStartupProgress(userId),
           db.getFitnessLogs(userId),
         ])
         dispatch({ type: 'SET_LOGS', logs })
-        dispatch({ type: 'SET_DSA', dsa })
-        dispatch({ type: 'SET_STARTUP', startup })
         dispatch({ type: 'SET_FIT_LOGS', fitLogs: fit })
       } finally {
         dispatch({ type: 'SET_LOADING', loading: false })
@@ -323,26 +299,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       await db.logHabit(session.userId, { h: habitName, d: today, s: status })
     },
     [session]
-  )
-
-  const toggleDSA = useCallback(
-    async (key: string) => {
-      if (!session) return
-      const v = !state.dsaProg[key]
-      dispatch({ type: 'TOGGLE_DSA', key, value: v })
-      await db.toggleDSA(session.userId, key, v)
-    },
-    [session, state.dsaProg]
-  )
-
-  const toggleStartup = useCallback(
-    async (key: string) => {
-      if (!session) return
-      const v = !state.startupProg[key]
-      dispatch({ type: 'TOGGLE_STARTUP', key, value: v })
-      await db.toggleStartup(session.userId, key, v)
-    },
-    [session, state.startupProg]
   )
 
   const addFitnessLog = useCallback(
@@ -560,8 +516,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ...state,
         logHabit,
         addHabit,
-        toggleDSA,
-        toggleStartup,
         addFitnessLog,
         sendReaction,
         linkPartner,

@@ -1,4 +1,15 @@
 import { useState } from 'react'
+import {
+  Check,
+  Crown,
+  Eye,
+  Flame,
+  Handshake,
+  MessageCircle,
+  PartyPopper,
+  Trophy,
+} from 'lucide-react'
+import type { ReactNode } from 'react'
 import { LogRow, calcStats, todayStr } from './shared'
 import { getMeta } from '../data/constants'
 import { useAuth } from '../stores/AuthContext'
@@ -66,11 +77,11 @@ export default function Accountability() {
   const incomingReactions = reactions?.filter((r) => r.to_user === session?.userId) || []
   const outgoingReactions = reactions?.filter((r) => r.from_user === session?.userId) || []
 
-  const reactionEmoji: Record<string, string> = {
-    fire: '🔥',
-    nudge: '👀',
-    cheer: '🎉',
-    message: '💬',
+  const reactionIcon: Record<string, ReactNode> = {
+    fire: <Flame size={16} aria-hidden />,
+    nudge: <Eye size={16} aria-hidden />,
+    cheer: <PartyPopper size={16} aria-hidden />,
+    message: <MessageCircle size={16} aria-hidden />,
   }
   const reactionLabel: Record<string, string> = {
     fire: 'Cheered your habit',
@@ -87,7 +98,9 @@ export default function Accountability() {
           <div className="pt">Link with your partner</div>
         </div>
         <div className="card" style={{ padding: 20, marginBottom: 14, textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🤝</div>
+          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}>
+            <Handshake size={32} color="#3b82f6" aria-hidden />
+          </div>
           <div style={{ fontSize: 14, color: '#e8e6e1', marginBottom: 6 }}>
             Connect with your accountability partner
           </div>
@@ -131,7 +144,10 @@ export default function Accountability() {
                 borderRadius: 6,
               }}
             >
-              ✓ Linked! Refresh the page to see your partner's progress.
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <Check size={11} strokeWidth={3} aria-hidden /> Linked! Refresh the page to see
+                your partner's progress.
+              </span>
             </div>
           )}
           <button
@@ -161,20 +177,20 @@ export default function Accountability() {
           </div>
           {[
             {
-              icon: '1️⃣',
+              icon: '1',
               t: 'Both create accounts',
               n: 'You and your partner each sign up separately.',
             },
-            { icon: '2️⃣', t: 'Link by email', n: "Enter your partner's email above to connect." },
+            { icon: '2', t: 'Link by email', n: "Enter your partner's email above to connect." },
             {
-              icon: '3️⃣',
+              icon: '3',
               t: 'See each other in real time',
               n: "Watch each other's habits update live.",
             },
             {
-              icon: '4️⃣',
+              icon: '4',
               t: 'React + nudge',
-              n: '🔥 fire on wins, 👀 nudge on misses, 💬 send messages.',
+              n: 'Fire on wins, nudge on misses, message your partner.',
             },
           ].map((s, i) => (
             <div
@@ -189,7 +205,23 @@ export default function Accountability() {
                 border: '1px solid #1a1a2a',
               }}
             >
-              <span style={{ fontSize: 16 }}>{s.icon}</span>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  width: 20,
+                  height: 20,
+                  borderRadius: 4,
+                  background: '#1a1a3a',
+                  color: '#818cf8',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                {s.icon}
+              </span>
               <div>
                 <div style={{ fontSize: 11, color: '#d4d0c8', fontWeight: 500 }}>{s.t}</div>
                 <div style={{ fontSize: 9, color: '#555', marginTop: 1 }}>{s.n}</div>
@@ -311,7 +343,7 @@ export default function Accountability() {
           <input
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Great job today! Keep going 💪"
+            placeholder="Great job today! Keep going"
             onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
           />
           <button
@@ -332,9 +364,9 @@ export default function Accountability() {
         <div style={{ display: 'flex', gap: 7, marginTop: 9 }}>
           {(
             [
-              { type: 'fire', emoji: '🔥', label: 'Fire!' },
-              { type: 'cheer', emoji: '🎉', label: 'Cheer' },
-              { type: 'nudge', emoji: '👀', label: 'Nudge' },
+              { type: 'fire', icon: <Flame size={12} aria-hidden />, label: 'Fire!' },
+              { type: 'cheer', icon: <PartyPopper size={12} aria-hidden />, label: 'Cheer' },
+              { type: 'nudge', icon: <Eye size={12} aria-hidden />, label: 'Nudge' },
             ] as const
           ).map((r) => (
             <button
@@ -348,9 +380,12 @@ export default function Accountability() {
                 padding: '5px 12px',
                 fontFamily: 'inherit',
                 fontSize: 12,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
               }}
             >
-              {r.emoji} {r.label}
+              {r.icon} {r.label}
             </button>
           ))}
         </div>
@@ -377,7 +412,9 @@ export default function Accountability() {
                   border: '1px solid ' + (isIncoming ? '#1a2a18' : '#1a1a2a'),
                 }}
               >
-                <span style={{ fontSize: 16 }}>{reactionEmoji[r.type] || '💬'}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  {reactionIcon[r.type] || <MessageCircle size={16} aria-hidden />}
+                </span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 10, color: '#c4c0d8' }}>
                     <span style={{ color: isIncoming ? '#22c55e' : '#3b82f6', fontWeight: 600 }}>
@@ -421,13 +458,24 @@ export default function Accountability() {
                       fontSize: 9,
                       color:
                         leader === 'you' ? '#3b82f6' : leader === 'partner' ? '#22c55e' : '#f59e0b',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 3,
                     }}
                   >
-                    {leader === 'tied'
-                      ? '🤝 tied'
-                      : leader === 'you'
-                        ? '🏆 you lead'
-                        : '👑 partner leads'}
+                    {leader === 'tied' ? (
+                      <>
+                        <Handshake size={10} aria-hidden /> tied
+                      </>
+                    ) : leader === 'you' ? (
+                      <>
+                        <Trophy size={10} aria-hidden /> you lead
+                      </>
+                    ) : (
+                      <>
+                        <Crown size={10} aria-hidden /> partner leads
+                      </>
+                    )}
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>

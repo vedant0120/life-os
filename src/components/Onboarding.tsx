@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Plus, Trash2, X } from 'lucide-react'
+import { Check, Plus, Trash2, X } from 'lucide-react'
 import type { OnboardingPayload } from '../types'
 import { CAT_COLORS, CATEGORIES } from '../data/constants'
 
@@ -189,14 +189,14 @@ export default function Onboarding({
                         {cat}
                       </span>
                       <span
-                        className="w-4 h-4 rounded border flex items-center justify-center text-[10px]"
+                        className="w-4 h-4 rounded border flex items-center justify-center"
                         style={{
                           borderColor: active ? color : 'var(--color-border)',
                           background: active ? color : 'transparent',
                           color: active ? '#000' : 'transparent',
                         }}
                       >
-                        ✓
+                        {active ? <Check size={10} strokeWidth={3} aria-hidden /> : null}
                       </span>
                     </div>
                   </button>

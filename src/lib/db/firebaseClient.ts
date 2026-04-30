@@ -40,7 +40,6 @@ import { getFirebaseAuth, getFirestoreDb } from '../firebase'
 import { CAT_COLORS } from '../../data/constants'
 import type {
   ChecklistItem,
-  DSAProgress,
   DietState,
   FinanceSettings,
   FinanceTransaction,
@@ -52,7 +51,6 @@ import type {
   Reaction,
   RoadmapMonth,
   ScheduleState,
-  StartupProgress,
   Status,
   Tracker,
 } from '../../types'
@@ -241,24 +239,6 @@ export const firebaseClient: DataClient = {
     const snap = await getDocs(q)
     return snap.docs.map((d) => ({ id: d.id, ...(d.data() as FitnessLog) }))
   },
-  async getDSAProgress(userId) {
-    const snap = await getDocs(collection(getFirestoreDb(), 'users', userId, 'dsa_progress'))
-    const p: DSAProgress = {}
-    snap.docs.forEach((d) => {
-      const data = d.data() as { completed?: boolean }
-      if (data.completed) p[d.id] = true
-    })
-    return p
-  },
-  async getStartupProgress(userId) {
-    const snap = await getDocs(collection(getFirestoreDb(), 'users', userId, 'startup_progress'))
-    const p: StartupProgress = {}
-    snap.docs.forEach((d) => {
-      const data = d.data() as { completed?: boolean }
-      if (data.completed) p[d.id] = true
-    })
-    return p
-  },
 
   // ── Data writes ───────────────────────────────────────────────────────────
   async logHabit(userId, { h, d, s }) {
@@ -277,20 +257,6 @@ export const firebaseClient: DataClient = {
       active: true,
       created_at: serverTimestamp(),
     })
-  },
-  async toggleDSA(userId, topicKey, value) {
-    await setDoc(
-      doc(getFirestoreDb(), 'users', userId, 'dsa_progress', topicKey),
-      { completed: value, updated_at: serverTimestamp() },
-      { merge: true }
-    )
-  },
-  async toggleStartup(userId, taskKey, value) {
-    await setDoc(
-      doc(getFirestoreDb(), 'users', userId, 'startup_progress', taskKey),
-      { completed: value, updated_at: serverTimestamp() },
-      { merge: true }
-    )
   },
   async addFitnessLog(userId, entry) {
     await addDoc(collection(getFirestoreDb(), 'users', userId, 'fitness_logs'), {

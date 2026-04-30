@@ -2,7 +2,6 @@
 // Backend-agnostic surface consumed by AuthContext / DataContext.
 // Implementation: ./firebaseClient.ts (re-exported as `db` via ./index.ts).
 import type {
-  DSAProgress,
   DietState,
   FinanceSettings,
   FinanceTransaction,
@@ -15,7 +14,6 @@ import type {
   Profile,
   Reaction,
   ScheduleState,
-  StartupProgress,
   Status,
   Tracker,
 } from '../../types'
@@ -54,8 +52,6 @@ export interface DataClient {
   getHabits(userId: string): Promise<string[]>
   getLogs(userId: string): Promise<HabitLog[]>
   getFitnessLogs(userId: string): Promise<FitnessLog[]>
-  getDSAProgress(userId: string): Promise<DSAProgress>
-  getStartupProgress(userId: string): Promise<StartupProgress>
 
   // ── Data writes ───────────────────────────────────────────────────────────
   logHabit(userId: string, log: { h: string; d: string; s: Exclude<Status, null> }): Promise<void>
@@ -63,8 +59,6 @@ export interface DataClient {
     userId: string,
     habit: { name: string; category: string; color: string; icon: string; priority?: number }
   ): Promise<void>
-  toggleDSA(userId: string, topicKey: string, value: boolean): Promise<void>
-  toggleStartup(userId: string, taskKey: string, value: boolean): Promise<void>
   addFitnessLog(userId: string, entry: FitnessLog): Promise<void>
   sendReaction(payload: Reaction): Promise<void>
   markReactionRead(id: string): Promise<void>

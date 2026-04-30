@@ -17,9 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fontsource/dm-sans": "^5.2.8",
     "@fontsource/inter": "^5.2.8",
-    "@fontsource/jetbrains-mono": "^5.2.8",
     "@tailwindcss/vite": "^4.2.4",
     "firebase": "^10.14.1",
     "lucide-react": "^1.8.0",

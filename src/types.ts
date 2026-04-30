@@ -75,10 +75,6 @@ export interface FitnessLog {
   note?: string | null
 }
 
-// DSA + Startup progress are stored as `{ [key]: true }` where key is
-// `${monthIndex}-${itemIndex}` (see Trackers.tsx + App.tsx loaders).
-export type DSAProgress = Record<string, boolean>
-export type StartupProgress = Record<string, boolean>
 // Goal progress table stores arbitrary 0-100 numbers keyed by goal_id.
 export type GoalProgress = Record<string, number>
 

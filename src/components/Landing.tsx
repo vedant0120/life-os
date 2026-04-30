@@ -1,3 +1,14 @@
+import {
+  Brain,
+  Check,
+  Code2,
+  DollarSign,
+  Dumbbell,
+  Handshake,
+  Rocket,
+  type LucideIcon,
+} from 'lucide-react'
+
 export default function Landing({
   onSignup,
   onLogin,
@@ -5,6 +16,44 @@ export default function Landing({
   onSignup: () => void
   onLogin: () => void
 }) {
+  const features: { Icon: LucideIcon; title: string; desc: string; color: string }[] = [
+    {
+      Icon: Code2,
+      title: 'Interview Prep',
+      desc: 'Track your study roadmap with built-in revision. Works for interview prep, certifications, or any long-horizon study plan.',
+      color: '#3b82f6',
+    },
+    {
+      Icon: Handshake,
+      title: 'Accountability Partner',
+      desc: 'Link with someone who matters. See their habits update in real time. Send fire on wins, nudge on misses. Compete on streaks.',
+      color: '#22c55e',
+    },
+    {
+      Icon: Rocket,
+      title: 'Startup Milestone Tracker',
+      desc: 'From idea to launch in 6 months. Track validation, build, beta, and launch milestones. Never lose sight of where you are.',
+      color: '#f59e0b',
+    },
+    {
+      Icon: Dumbbell,
+      title: 'Fitness & Weight Tracking',
+      desc: 'Log weight, calories, workouts. Milestone-based goals. Calorie targets calculated for your specific body composition goal.',
+      color: '#f97316',
+    },
+    {
+      Icon: DollarSign,
+      title: 'Personal Finance Planner',
+      desc: "Monthly budget breakdown, investment tracking, savings rate. Know exactly where every dollar goes and where you're heading.",
+      color: '#a855f7',
+    },
+    {
+      Icon: Brain,
+      title: 'Morning Routine & Schedule',
+      desc: 'Design a morning routine that sticks. Block out deep work, workouts, and wind-down rituals — structured into a sustainable daily system.',
+      color: '#14b8a6',
+    },
+  ]
   return (
     <div
       style={{
@@ -179,44 +228,7 @@ export default function Landing({
             marginBottom: 16,
           }}
         >
-          {[
-            {
-              icon: '💻',
-              title: 'Interview Prep',
-              desc: 'Track your study roadmap with built-in revision. Works for interview prep, certifications, or any long-horizon study plan.',
-              color: '#3b82f6',
-            },
-            {
-              icon: '🤝',
-              title: 'Accountability Partner',
-              desc: 'Link with someone who matters. See their habits update in real time. Send fire 🔥 on wins, nudge 👀 on misses. Compete on streaks.',
-              color: '#22c55e',
-            },
-            {
-              icon: '🚀',
-              title: 'Startup Milestone Tracker',
-              desc: 'From idea to launch in 6 months. Track validation, build, beta, and launch milestones. Never lose sight of where you are.',
-              color: '#f59e0b',
-            },
-            {
-              icon: '💪',
-              title: 'Fitness & Weight Tracking',
-              desc: 'Log weight, calories, workouts. Milestone-based goals. Calorie targets calculated for your specific body composition goal.',
-              color: '#f97316',
-            },
-            {
-              icon: '💰',
-              title: 'Personal Finance Planner',
-              desc: "Monthly budget breakdown, investment tracking, savings rate. Know exactly where every dollar goes and where you're heading.",
-              color: '#a855f7',
-            },
-            {
-              icon: '🧘',
-              title: 'Morning Routine & Schedule',
-              desc: 'Design a morning routine that sticks. Block out deep work, workouts, and wind-down rituals — structured into a sustainable daily system.',
-              color: '#14b8a6',
-            },
-          ].map((f, i) => (
+          {features.map((f, i) => (
             <div key={i} className="feature-card">
               <div
                 style={{
@@ -227,11 +239,10 @@ export default function Landing({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 20,
                   marginBottom: 14,
                 }}
               >
-                {f.icon}
+                <f.Icon size={20} color={f.color} aria-hidden />
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#e8e6e1', marginBottom: 8 }}>
                 {f.title}
@@ -373,7 +384,9 @@ export default function Landing({
                       color: '#888',
                     }}
                   >
-                    <span style={{ color: p.color }}>✓</span>
+                    <span style={{ color: p.color, display: 'inline-flex', alignItems: 'center' }}>
+                      <Check size={12} strokeWidth={3} aria-hidden />
+                    </span>
                     {f}
                   </div>
                 ))}

@@ -1,4 +1,5 @@
 // ─── Progress Ring ────────────────────────────────────────────────────────────
+import { Check, X, ArrowRight, Flame, TrendingUp, Eye } from 'lucide-react'
 import type { HabitLog, HabitStats, Reaction, Status } from '../types'
 
 interface RingProps {
@@ -59,8 +60,15 @@ export function LogRow({
 }: LogRowProps) {
   const meta = getMeta(habit)
   const LC = ['#22c55e', '#ef4444', '#f59e0b']
-  const LI = ['✓', '✗', '→']
   const LK: Array<Exclude<Status, null>> = ['success', 'fail', 'skip']
+  const statusIcon = (s: Status, size = 11) =>
+    s === 'success' ? (
+      <Check size={size} aria-hidden />
+    ) : s === 'fail' ? (
+      <X size={size} aria-hidden />
+    ) : (
+      <ArrowRight size={size} aria-hidden />
+    )
 
   return (
     <div className={'row' + (isAnchor ? ' arow' : '')}>
@@ -94,9 +102,31 @@ export function LogRow({
           {habit}
         </div>
         {showStats && stats && (
-          <div style={{ display: 'flex', gap: 8, marginTop: 1 }}>
-            <span style={{ fontSize: 9, color: '#444' }}>🔥{stats.current}d</span>
-            <span style={{ fontSize: 9, color: '#444' }}>📈{stats.rate}%</span>
+          <div style={{ display: 'flex', gap: 8, marginTop: 1, alignItems: 'center' }}>
+            <span
+              style={{
+                fontSize: 9,
+                color: '#444',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 2,
+              }}
+            >
+              <Flame size={9} aria-hidden />
+              {stats.current}d
+            </span>
+            <span
+              style={{
+                fontSize: 9,
+                color: '#444',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 2,
+              }}
+            >
+              <TrendingUp size={9} aria-hidden />
+              {stats.rate}%
+            </span>
           </div>
         )}
       </div>
@@ -119,7 +149,7 @@ export function LogRow({
             flexShrink: 0,
           }}
         >
-          {todayStatus === 'success' ? '✓' : todayStatus === 'fail' ? '✗' : '→'}
+          {statusIcon(todayStatus)}
         </span>
       )}
       {!isPartner && logHabit && (
@@ -135,7 +165,7 @@ export function LogRow({
                 color: todayStatus === s ? LC[i] : '#444',
               }}
             >
-              {LI[i]}
+              {statusIcon(s)}
             </button>
           ))}
         </div>
@@ -151,9 +181,12 @@ export function LogRow({
             padding: '3px 8px',
             fontFamily: 'inherit',
             fontSize: 11,
+            display: 'inline-flex',
+            alignItems: 'center',
           }}
+          aria-label="Send fire reaction"
         >
-          🔥
+          <Flame size={12} aria-hidden />
         </button>
       )}
       {isPartner && onReact && !todayStatus && (
@@ -167,9 +200,12 @@ export function LogRow({
             padding: '3px 8px',
             fontFamily: 'inherit',
             fontSize: 11,
+            display: 'inline-flex',
+            alignItems: 'center',
           }}
+          aria-label="Nudge partner"
         >
-          👀
+          <Eye size={12} aria-hidden />
         </button>
       )}
     </div>

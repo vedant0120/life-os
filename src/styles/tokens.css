@@ -1,4 +1,4 @@
-/* Design tokens — dark default, tuned to the P4 visual system.
+/* Design tokens — dark default, brief v2 (indigo brand + Inter).
    Consumed by Tailwind via @theme in index.css. */
 :root {
   --color-bg: #0c0f1a;
@@ -8,9 +8,10 @@
   --color-border: #1f2238;
   --color-border-strong: #2a2e4a;
   --color-text: #e2e8f0;
-  --color-muted: #64748b;
-  --color-brand: #22c55e;
-  --color-brand-strong: #16a34a;
+  --color-muted: #8A8A99;
+  --color-brand: #6366F1;
+  --color-brand-strong: #4F46E5;
+  --color-brand-soft: #6366F11A;
   --color-success: #22c55e;
   --color-warn: #facc15;
   --color-danger: #ef4444;

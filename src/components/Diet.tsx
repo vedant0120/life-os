@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { Card, PageHeader, SectionTitle, Badge } from './ui/primitives'
 import { useData } from '../stores/DataContext'
 import type { DietMeal } from '../types'
@@ -259,8 +259,9 @@ export default function Diet() {
                 type="button"
                 onClick={saveNote}
                 className="px-3 rounded-md bg-brand text-black text-xs font-bold hover:bg-brand-strong"
+                aria-label="Save note"
               >
-                ✓
+                <Check size={12} aria-hidden />
               </button>
               <button
                 type="button"
@@ -269,8 +270,9 @@ export default function Diet() {
                   setNoteText('')
                 }}
                 className="px-3 rounded-md bg-surface-2 border border-border text-xs text-muted hover:text-text"
+                aria-label="Cancel"
               >
-                ✕
+                <X size={12} aria-hidden />
               </button>
             </div>
           ) : (
@@ -326,8 +328,9 @@ export default function Diet() {
                 setNoteText('')
               }}
               className="px-3 rounded-md bg-surface-2 border border-border text-xs text-muted"
+              aria-label="Cancel"
             >
-              ✕
+              <X size={12} aria-hidden />
             </button>
           </div>
         )}
